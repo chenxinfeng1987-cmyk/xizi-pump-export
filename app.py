@@ -128,87 +128,173 @@ TRANSLATIONS = {
     'series_all_en': 'All Series',
 }
 
+def calc_guide_rail_price(mat, length):
+    """导轨价格计算（按长度计价）"""
+    sizes = ACC.get('guide_rail', {}).get('sizes', [])
+    if not sizes:
+        return 0
+    mat_key = {'galv': 'galv', 'ss304': 'ss304', 'ss316': 'ss316'}.get(mat, 'galv')
+    first = sizes[0].get(mat_key, 0) if sizes else 0
+    return first * length
+
+def calc_chain_price(ch_type, grade, size, length):
+    """链条价格计算（按长度计价）"""
+    if ch_type == 'ss':
+        chains = ACC.get('ss304_chain', [])
+        for c in chains:
+            if str(c.get('size','')) == str(size):
+                return c.get('p304', 0) * length
+        return 0
+    # hc4 or hc8
+    key = f'hc{grade}'
+    data = ACC.get(key, [])
+    for c in data:
+        if str(c.get('size','')) == str(size):
+            return c.get('price', 0) * length
+    return 0
+
+def calc_elbow_price(material, dn, qty):
+    """弯头价格计算"""
+    el = ACC.get('elbow', {}).get(material, {})
+    return el.get(str(dn), 0) * qty
+
+def calc_dflange_price(material, dn, qty):
+    """双法兰弯头价格"""
+    df = ACC.get('dflange', {}).get(material, {})
+    return df.get(str(dn), 0) * qty
+
+def nearest_dn_for_acc(dn):
+    """取最近的<=DN"""
+    valid = [100, 150, 200, 250, 300, 350, 400, 500, 600]
+    best = valid[0]
+    for v in valid:
+        if v <= dn:
+            best = v
+    return best
+
+def extract_dn(model):
+    """从型号提取口径 DN"""
+    m = re.match(r'(\d+)', model)
+    if m:
+        return int(m.group(1))
+    return 100
+
 def calc_price(model, options):
     """详细报价计算"""
     price_info = PRICE_DATA.get('PRICE_DATA', PRICE_DATA).get(model, {})
     if not price_info:
         return None
     
+    dn = extract_dn(model)
     face = price_info.get('face', 0)
     discount = options.get('discount', 0.55)
     qty = options.get('qty', 1)
-    is_60hz = options.get('freq', '50Hz') == '60Hz'
-    is_voltage_adapt = options.get('voltage_adapt', False)
+    freq = options.get('freq', '50')
+    is_voltage_adapt = options.get('volt_adapt', False)
     
-    # 基础价格
+    # 基础价格（面价 × 折扣）
     base = face * discount
     
-    # 选配件差价
+    # === 选配件差价 ===
+    # 轴承
     bearing_type = options.get('bearing', 'std')
     if bearing_type == 'nsk':
         base += price_info.get('bearing_nsk', 0) - price_info.get('bearing_std', 0)
     elif bearing_type == 'skf':
         base += price_info.get('bearing_skf', 0) - price_info.get('bearing_std', 0)
     
+    # 机封
     mech_type = options.get('mech', 'std')
     if mech_type == 'bgm':
         base += price_info.get('mech_bgm', 0) - price_info.get('mech_std', 0)
     
+    # 叶轮
     impeller_type = options.get('impeller', 'std')
     if impeller_type == '304':
         base += price_info.get('impeller_304', 0) - price_info.get('impeller_std', 0)
     elif impeller_type == 'ductile':
         base += price_info.get('impeller_ductile', 0) - price_info.get('impeller_std', 0)
     
+    # 泵体
     body_type = options.get('body', 'std')
     if body_type == 'ductile':
         base += price_info.get('body_ductile', 0) - price_info.get('body_std', 0)
     
-    # 电缆
-    cable_type = options.get('cable', '9m')
+    # 电缆（标配9m差价=0）
+    cable_type = options.get('cable_type', 'regular')
     if cable_type == 'star_delta':
         base += price_info.get('cable_star_delta', 0) - price_info.get('cable_9m', 0)
+    # 额外电缆长度差价（标配9m之外）
+    cable_m = float(options.get('cable_m', 9))
+    if cable_m > 9:
+        # 电缆差价 = (额外米数 × 单价差)，从 ACC 或固定值
+        cable_extra = (cable_m - 9) * 5  # 约 ¥5/米差价
+        base += cable_extra
     
-    # 联轴器
-    if options.get('coupling'):
-        coupling_price = options['coupling'].get('price', 0)
-        base += coupling_price * discount
+    # 联轴器（按口径选价格）
+    coupling_type = options.get('coupling', 'none')
+    if coupling_type != 'none':
+        coupling_key = 'coupling_heavy' if coupling_type == 'heavy_ht200' else ('coupling_light' if coupling_type == 'light_ht200' else 'coupling_304')
+        c_price = price_info.get(coupling_key, 0)
+        if not c_price:
+            # 从 COUPLING 表取
+            c_data = COUPLING.get(coupling_key, {})
+            for k in sorted(c_data.keys(), key=lambda x: float(x)):
+                if float(k) <= dn:
+                    c_price = c_data[k]
+        base += c_price * discount
     
-    # 传感器
+    # === 传感器/保护器（按数量计价）===
     if options.get('vibration'):
-        base += SENSOR_PRICES.get('vibration', 2200)
+        base += SENSOR_PRICES.get('vibration', 2200) * int(options.get('vib_qty', 1))
     if options.get('pt100'):
-        base += SENSOR_PRICES.get('pt100', 350)
+        base += SENSOR_PRICES.get('pt100', 350) * int(options.get('pt100_qty', 1))
     if options.get('protector'):
-        base += SENSOR_PRICES.get('protector', 350)
+        base += SENSOR_PRICES.get('protector', 350) * int(options.get('prot_qty', 1))
     
-    # 导轨
+    # === 备件 ===
+    if options.get('spare'):
+        base += price_info.get('bearing_std', 0)  # 轴承备件
+        base += price_info.get('mech_std', 0)      # 机封备件
+    
+    # === 导轨（按长度计价）===
     if options.get('guide_rail'):
-        base += options['guide_rail'].get('price', 0)
+        gr_mat = options.get('gr_mat', 'galv')
+        gr_len = int(options.get('gr_len', 6))
+        base += calc_guide_rail_price(gr_mat, gr_len)
     
-    # 链条
+    # === 链条（按长度计价）===
     if options.get('chain'):
-        base += options['chain'].get('price', 0)
+        ch_type = options.get('ch_type', 'hc')
+        ch_grade = options.get('ch_grade', '4')
+        ch_size = options.get('ch_size', '')
+        ch_len = int(options.get('ch_len', 6))
+        if ch_type == 'ss':
+            base += calc_chain_price('ss', 0, ch_size, ch_len)
+        else:
+            base += calc_chain_price(ch_type, ch_grade, ch_size, ch_len)
     
-    # 弯头
+    # === 弯头（按口径×数量计价）===
     if options.get('elbow'):
-        base += options['elbow'].get('price', 0)
+        el_dn = nearest_dn_for_acc(dn)
+        base += calc_elbow_price(options.get('el_mat', 'HT200'), el_dn, int(options.get('el_qty', 1)))
     
-    # 双法兰
+    # === 双法兰（按口径×数量计价）===
     if options.get('dflange'):
-        base += options['dflange'].get('price', 0)
+        df_dn = nearest_dn_for_acc(dn)
+        base += calc_dflange_price(options.get('df_mat', 'SS304'), df_dn, int(options.get('df_qty', 1)))
     
     subtotal = base * qty
     
     # 60Hz 加价
-    if is_60hz:
+    if freq == '60':
         subtotal *= 1.1
     
-    # 电压适配
+    # 电压适配加价
     if is_voltage_adapt:
         subtotal *= 1.1
     
-    # FOB 加价
+    # FOB 加价 5%
     fob_cny = subtotal * 1.05
     fob_usd = round(fob_cny / EXCHANGE_RATE, 2)
     
@@ -325,6 +411,21 @@ def api_product_detail(model):
         'acc': ACC,
         'exchange_rate': EXCHANGE_RATE
     })
+
+@app.route('/api/chain_sizes')
+def api_chain_sizes():
+    """返回链条尺寸选项"""
+    ch_type = request.args.get('type', 'hc')
+    grade = request.args.get('grade', '4')
+    if ch_type == 'ss':
+        chains = ACC.get('ss304_chain', [])
+        sizes = [{'size': c.get('size'), 'load': c.get('load', 0)} for c in chains]
+        return jsonify({'sizes': sizes})
+    else:
+        key = f'hc{grade}'
+        data = ACC.get(key, [])
+        sizes = [{'size': c.get('size'), 'load': c.get('load', 0)} for c in data]
+        return jsonify({'sizes': sizes})
 
 @app.route('/api/calc', methods=['POST'])
 def api_calc():

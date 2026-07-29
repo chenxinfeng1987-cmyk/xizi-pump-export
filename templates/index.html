@@ -20,11 +20,6 @@
         .btn { background: #1a237e; color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 16px; cursor: pointer; }
         .btn:hover { background: #0d47a1; }
         .btn-secondary { background: #6c757d; }
-        .btn-success { background: #28a745; }
-        .series-tags { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-        .series-tag { padding: 8px 16px; border-radius: 20px; cursor: pointer; border: 2px solid #e0e0e0; background: white; }
-        .series-tag.active { background: #1a237e; color: white; border-color: #1a237e; }
-        .series-tag:hover { border-color: #1a237e; }
         .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); transition: transform 0.2s; }
         .card:hover { transform: translateY(-3px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -37,17 +32,21 @@
         .detail-content { background: white; max-width: 900px; margin: 40px auto; border-radius: 12px; padding: 30px; position: relative; }
         .detail-close { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; }
         .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .config-section { margin-bottom: 20px; }
+        .config-section h4 { color: #1a237e; margin-bottom: 10px; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px; }
+        .config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
         .config-item { background: #f8f9fa; border-radius: 8px; padding: 15px; }
-        .config-item label { display: block; font-weight: 600; margin-bottom: 8px; color: #555; }
-        .config-item select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
-        .config-item .price-hint { font-size: 0.85em; color: #888; margin-top: 5px; }
+        .config-item label { display: block; font-weight: 600; margin-bottom: 8px; color: #555; font-size: 0.9em; }
+        .config-item select, .config-item input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
+        .config-item .sub { font-size: 0.85em; color: #888; margin-top: 5px; }
         .price-summary { background: #e3f2fd; border-radius: 8px; padding: 20px; margin-top: 20px; }
         .price-summary h3 { color: #1a237e; margin-bottom: 15px; }
         .price-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
         .price-total { font-size: 1.4em; color: #d32f2f; font-weight: bold; border-top: 2px solid #1a237e; padding-top: 10px; }
         .chart-frame { width: 100%; height: 400px; border: 1px solid #ddd; border-radius: 8px; margin-top: 20px; }
         .loading { text-align: center; padding: 40px; color: #888; }
+        .row2 { display: flex; gap: 15px; }
+        .row2 > * { flex: 1; }
     </style>
 </head>
 <body>
@@ -69,8 +68,23 @@
                     </select>
                 </div>
                 <div class="search-group">
-                    <label>Model Keyword</label>
-                    <input type="text" id="txtQ" placeholder="e.g. 100WQA">
+                    <label>Discharge (DN)</label>
+                    <select id="selDN" onchange="loadProducts()">
+                        <option value="">All DN</option>
+                        <option value="40">DN40</option>
+                        <option value="50">DN50</option>
+                        <option value="65">DN65</option>
+                        <option value="80">DN80</option>
+                        <option value="100">DN100</option>
+                        <option value="150">DN150</option>
+                        <option value="200">DN200</option>
+                        <option value="250">DN250</option>
+                        <option value="300">DN300</option>
+                        <option value="350">DN350</option>
+                        <option value="400">DN400</option>
+                        <option value="500">DN500</option>
+                        <option value="600">DN600</option>
+                    </select>
                 </div>
                 <div class="search-group">
                     <label>Flow (m³/h)</label>
@@ -85,9 +99,7 @@
                     <button class="btn" onclick="doSearch()">Search</button>
                 </div>
             </div>
-            <div class="series-tags" id="seriesTags"></div>
         </div>
-
         <div id="resultsArea" class="loading">Loading...</div>
     </div>
 
@@ -99,17 +111,19 @@
     </div>
 
     <script>
-        const RATE = {{ rate }};
         let currentSeries = '';
         let allProducts = [];
+        let accData = {};
 
         async function loadProducts() {
+            const dn = document.getElementById('selDN').value;
             const params = new URLSearchParams({
                 series: currentSeries,
-                q: document.getElementById('txtQ').value,
+                q: dn ? dn : document.getElementById('txtFlow').value ? '' : '',
                 flow: document.getElementById('txtFlow').value,
                 head: document.getElementById('txtHead').value
             });
+            if (dn) params.set('dn', dn);
             const res = await fetch('/api/products?' + params);
             const data = await res.json();
             allProducts = data.products;
@@ -118,232 +132,258 @@
 
         function renderProducts(products) {
             const area = document.getElementById('resultsArea');
-            if (!products.length) {
-                area.innerHTML = '<div class="loading">No products found</div>';
-                return;
-            }
+            if (!products.length) { area.innerHTML = '<div class="loading">No products found</div>'; return; }
             let html = '<div class="results">';
             for (const p of products) {
-                const hasPrice = p.has_price;
-                html += `
-                    <div class="card">
-                        <h3>${p.model}</h3>
-                        <div class="specs">
-                            <span>Flow: ${p.flow} m³/h</span>
-                            <span>Head: ${p.head} m</span>
-                            <span>Power: ${p.power} kW</span>
-                        </div>
-                        ${hasPrice ? '<div class="price">FOB Available</div>' : '<div class="price" style="color:#888">Contact for Price</div>'}
-                        <button class="btn" onclick="openDetail('${p.model}')">Configure & Quote</button>
-                    </div>
-                `;
+                html += `<div class="card"><h3>${p.model}</h3>
+                    <div class="specs"><span>DN: ${p.dia || '-'}</span><span>Flow: ${p.flow} m³/h</span><span>Head: ${p.head} m</span><span>Power: ${p.power} kW</span></div>
+                    ${p.has_price ? '<div class="price">FOB Available</div>' : '<div class="price" style="color:#888">Contact</div>'}
+                    <button class="btn" onclick="openDetail('${p.model}')">Configure & Quote</button></div>`;
             }
             html += '</div>';
             area.innerHTML = html;
         }
 
-        function doSearch() {
-            loadProducts();
-        }
+        function doSearch() { loadProducts(); }
 
         async function openDetail(model) {
             document.getElementById('detailModal').style.display = 'block';
             document.getElementById('detailBody').innerHTML = '<div class="loading">Loading...</div>';
-            
             const res = await fetch('/api/product/' + encodeURIComponent(model));
             const data = await res.json();
-            
-            if (data.error) {
-                document.getElementById('detailBody').innerHTML = '<div class="loading">Error: ' + data.error + '</div>';
-                return;
-            }
-            
+            if (data.error) { document.getElementById('detailBody').innerHTML = '<div class="loading">Error: ' + data.error + '</div>'; return; }
+            accData = data.acc || {};
             renderDetail(data);
+        }
+
+        function nearestDn(dn, table) {
+            let best = null;
+            for (const k of Object.keys(table).map(Number).sort((a,b)=>a-b)) { if (k <= dn) best = k; }
+            return best;
         }
 
         function renderDetail(data) {
             const p = data.product;
-            const price = data.price;
+            const price = data.price || {};
+            const dn = parseInt(p.dia) || 100;
             const coupling = data.coupling || {};
-            const acc = data.acc || {};
-            
-            let html = `
-                <div class="detail-header">
-                    <h2>${p.model}</h2>
-                    <div>
-                        <a href="/curves/${data.curve}" target="_blank" class="btn btn-secondary" style="text-decoration:none">View Curve</a>
-                    </div>
-                </div>
-                <div class="specs">
-                    <span>Flow: ${p.flow} m³/h</span>
-                    <span>Head: ${p.head} m</span>
-                    <span>Power: ${p.power} kW</span>
-                    <span>Voltage: ${p.voltage || '380V'}</span>
-                    ${data.weight ? '<span>Weight: ' + data.weight + ' kg</span>' : ''}
-                </div>
-                
-                <h3 style="margin-top:20px;margin-bottom:15px">Configuration</h3>
-                <div class="config-grid">
-            `;
-            
+            let html = `<div class="detail-header"><h2>${p.model}</h2>
+                ${data.curve ? '<a href="/curves/' + data.curve + '" target="_blank" class="btn btn-secondary" style="text-decoration:none">View Curve</a>' : ''}
+            </div>
+            <div class="specs"><span>DN: ${p.dia || '-'}</span><span>Flow: ${p.flow} m³/h</span><span>Head: ${p.head} m</span><span>Power: ${p.power} kW</span><span>Voltage: ${p.voltage || '380V'}</span>${data.weight ? '<span>Weight: '+data.weight+' kg</span>' : ''}</div>`;
+
+            // === Pricing Conditions ===
+            html += '<div class="config-section"><h4>Pricing Options</h4><div class="config-grid">';
+
+            // Voltage
+            html += `<div class="config-item"><label>Voltage</label>
+                <select id="cfgVolt" onchange="calcPrice('${p.model}')">
+                    <option value="380">380V</option><option value="220">220V</option>
+                </select></div>`;
+            // Voltage adaptation
+            html += `<div class="config-item"><label>Voltage Adaptation</label>
+                <select id="cfgVoltAdapt" onchange="calcPrice('${p.model}')">
+                    <option value="0">No</option><option value="1">Yes (+10%)</option>
+                </select></div>`;
+            // Frequency
+            html += `<div class="config-item"><label>Frequency</label>
+                <select id="cfgFreq" onchange="calcPrice('${p.model}')">
+                    <option value="50">50Hz</option><option value="60">60Hz (+10%)</option>
+                </select></div>`;
+            // Bearing
+            html += `<div class="config-item"><label>Bearing</label>
+                <select id="cfgBearing" onchange="calcPrice('${p.model}')">
+                    <option value="std">Standard</option>
+                    ${price.bearing_nsk ? '<option value="nsk">NSK</option>' : ''}
+                    ${price.bearing_skf ? '<option value="skf">SKF</option>' : ''}
+                </select></div>`;
+            // Mech seal
+            html += `<div class="config-item"><label>Mechanical Seal</label>
+                <select id="cfgMech" onchange="calcPrice('${p.model}')">
+                    <option value="std">Standard</option>
+                    ${price.mech_bgm ? '<option value="bgm">Burgmann</option>' : ''}
+                </select></div>`;
             // Impeller
             if (price.impeller_304 || price.impeller_ductile) {
-                html += `
-                    <div class="config-item">
-                        <label>Impeller Material</label>
-                        <select id="cfgImpeller" onchange="calcPrice('${p.model}')">
-                            <option value="std">Standard</option>
-                            ${price.impeller_304 ? '<option value="304">SS304</option>' : ''}
-                            ${price.impeller_ductile ? '<option value="ductile">Ductile Iron</option>' : ''}
-                        </select>
-                    </div>
-                `;
+                html += `<div class="config-item"><label>Impeller Material</label>
+                    <select id="cfgImpeller" onchange="calcPrice('${p.model}')">
+                        <option value="std">Standard</option>
+                        ${price.impeller_304 ? '<option value="304">SS304</option>' : ''}
+                        ${price.impeller_ductile ? '<option value="ductile">Ductile Iron</option>' : ''}
+                    </select></div>`;
             }
-            
             // Body
             if (price.body_ductile) {
-                html += `
-                    <div class="config-item">
-                        <label>Pump Body</label>
-                        <select id="cfgBody" onchange="calcPrice('${p.model}')">
-                            <option value="std">Standard</option>
-                            <option value="ductile">Ductile Iron</option>
-                        </select>
-                    </div>
-                `;
+                html += `<div class="config-item"><label>Pump Body</label>
+                    <select id="cfgBody" onchange="calcPrice('${p.model}')">
+                        <option value="std">Standard</option><option value="ductile">Ductile Iron</option>
+                    </select></div>`;
             }
-            
-            // Bearing
-            if (price.bearing_nsk || price.bearing_skf) {
-                html += `
-                    <div class="config-item">
-                        <label>Bearing</label>
-                        <select id="cfgBearing" onchange="calcPrice('${p.model}')">
-                            <option value="std">Standard</option>
-                            ${price.bearing_nsk ? '<option value="nsk">NSK</option>' : ''}
-                            ${price.bearing_skf ? '<option value="skf">SKF</option>' : ''}
-                        </select>
-                    </div>
-                `;
-            }
-            
-            // Mech seal
-            if (price.mech_bgm) {
-                html += `
-                    <div class="config-item">
-                        <label>Mechanical Seal</label>
-                        <select id="cfgMech" onchange="calcPrice('${p.model}')">
-                            <option value="std">Standard</option>
-                            <option value="bgm">Burgmann</option>
-                        </select>
-                    </div>
-                `;
-            }
-            
-            // Cable
-            html += `
-                <div class="config-item">
-                    <label>Cable</label>
-                    <select id="cfgCable" onchange="calcPrice('${p.model}')">
-                        <option value="9m">9m Standard</option>
-                        ${price.cable_star_delta ? '<option value="star_delta">Star-Delta</option>' : ''}
-                    </select>
-                </div>
-            `;
-            
-            // Sensors
-            html += `
-                <div class="config-item">
-                    <label>Sensors</label>
-                    <div style="margin-top:8px">
-                        <label><input type="checkbox" id="cfgVib" onchange="calcPrice('${p.model}')"> Vibration</label><br>
-                        <label><input type="checkbox" id="cfgPt100" onchange="calcPrice('${p.model}')"> PT100 Temp</label><br>
-                        <label><input type="checkbox" id="cfgProt" onchange="calcPrice('${p.model}')"> Protector</label>
-                    </div>
-                </div>
-            `;
-            
-            // Frequency
-            html += `
-                <div class="config-item">
-                    <label>Frequency</label>
-                    <select id="cfgFreq" onchange="calcPrice('${p.model}')">
-                        <option value="50Hz">50Hz</option>
-                        <option value="60Hz">60Hz (+10%)</option>
-                    </select>
-                </div>
-            `;
-            
-            // Qty
-            html += `
-                <div class="config-item">
-                    <label>Quantity</label>
-                    <input type="number" id="cfgQty" value="1" min="1" onchange="calcPrice('${p.model}')">
-                </div>
-            `;
-            
-            html += '</div>';
-            
+            // Cable type
+            html += `<div class="config-item"><label>Cable Type</label>
+                <select id="cfgCableType" onchange="calcPrice('${p.model}')">
+                    <option value="regular">Regular</option>
+                    ${price.cable_star_delta ? '<option value="star_delta">Star-Delta</option>' : ''}
+                </select></div>`;
+            // Cable length
+            html += `<div class="config-item"><label>Cable Length (m)</label>
+                <input type="number" id="cfgCableM" value="9" min="0" max="200" step="0.5" onchange="calcPrice('${p.model}')">
+                <div class="sub">Std 9m included</div></div>`;
+            // Quantity
+            html += `<div class="config-item"><label>Quantity</label>
+                <input type="number" id="cfgQty" value="1" min="1" max="9999" onchange="calcPrice('${p.model}')"></div>`;
+            // Coupling
+            html += `<div class="config-item"><label>Coupling</label>
+                <select id="cfgCoupling" onchange="calcPrice('${p.model}')">
+                    <option value="none">None</option>
+                    <option value="heavy_ht200">Heavy HT200</option>
+                    <option value="light_ht200">Light HT200 (OHE)</option>
+                    <option value="ohf_304">SS304 (OHF)</option>
+                </select></div>`;
+            html += '</div></div>';
+
+            // === Sensors & Protectors ===
+            html += '<div class="config-section"><h4>Sensors & Protectors</h4><div class="config-grid">';
+            html += `<div class="config-item"><label><input type="checkbox" id="cfgVib" onchange="calcPrice('${p.model}')"> Vibration Sensor</label>
+                <div class="sub">¥2,200/pc</div>
+                <input type="number" id="cfgVibQty" value="1" min="1" max="10" onchange="calcPrice('${p.model}')" style="width:60px;margin-top:5px"></div>`;
+            html += `<div class="config-item"><label><input type="checkbox" id="cfgPt100" onchange="calcPrice('${p.model}')"> PT100 Temp Sensor</label>
+                <div class="sub">¥350/pc</div>
+                <input type="number" id="cfgPt100Qty" value="1" min="1" max="10" onchange="calcPrice('${p.model}')" style="width:60px;margin-top:5px"></div>`;
+            html += `<div class="config-item"><label><input type="checkbox" id="cfgProt" onchange="calcPrice('${p.model}')"> Protector</label>
+                <div class="sub">¥350/pc</div>
+                <input type="number" id="cfgProtQty" value="1" min="1" max="10" onchange="calcPrice('${p.model}')" style="width:60px;margin-top:5px"></div>`;
+            // Spare parts
+            html += `<div class="config-item"><label><input type="checkbox" id="cfgSpare" onchange="calcPrice('${p.model}')"> Spare Parts</label>
+                <div class="sub">Bearing + Mech Seal</div></div>`;
+            html += '</div></div>';
+
+            // === Guide Rail ===
+            html += '<div class="config-section"><h4>Guide Rail</h4><div class="config-grid">';
+            html += `<div class="config-item"><label><input type="checkbox" id="cfgGrEn" onchange="calcPrice('${p.model}')"> Enable</label></div>`;
+            html += `<div class="config-item"><label>Material</label>
+                <select id="cfgGrMat" onchange="calcPrice('${p.model}')">
+                    <option value="galv">Galvanized</option><option value="ss304">SS304</option><option value="ss316">SS316</option>
+                </select></div>`;
+            html += `<div class="config-item"><label>Length (m)</label>
+                <select id="cfgGrLen" onchange="calcPrice('${p.model}')">
+                    <option value="6">6</option><option value="12">12</option><option value="18">18</option><option value="24">24</option>
+                    <option value="30">30</option><option value="36">36</option><option value="42">42</option><option value="48">48</option>
+                    <option value="54">54</option><option value="60">60</option>
+                </select></div>`;
+            html += '</div></div>';
+
+            // === Chain Hoist ===
+            html += '<div class="config-section"><h4>Chain Hoist</h4><div class="config-grid">';
+            html += `<div class="config-item"><label><input type="checkbox" id="cfgChEn" onchange="loadChainSizes();calcPrice('${p.model}')"> Enable</label></div>`;
+            html += `<div class="config-item"><label>Type</label>
+                <select id="cfgChType" onchange="loadChainSizes();calcPrice('${p.model}')">
+                    <option value="hc">Standard Chain</option><option value="ss">SS304 Chain</option>
+                </select></div>`;
+            html += `<div class="config-item"><label>Grade</label>
+                <select id="cfgChGrade" onchange="loadChainSizes();calcPrice('${p.model}')">
+                    <option value="4">Grade 4</option><option value="8">Grade 8</option>
+                </select></div>`;
+            html += `<div class="config-item"><label>Size</label>
+                <select id="cfgChSize" onchange="calcPrice('${p.model}')"></select></div>`;
+            html += `<div class="config-item"><label>Length (m)</label>
+                <input type="number" id="cfgChLen" value="6" min="1" max="100" step="1" onchange="calcPrice('${p.model}')"></div>`;
+            html += `<div class="config-item"><label>Qty</label>
+                <input type="number" id="cfgChQty" value="1" min="1" max="50" onchange="calcPrice('${p.model}')"></div>`;
+            html += '</div></div>';
+
+            // === Elbows ===
+            html += '<div class="config-section"><h4>Elbows & Double-Flange</h4><div class="config-grid">';
+            html += `<div class="config-item"><label><input type="checkbox" id="cfgElEn" onchange="calcPrice('${p.model}')"> Elbow</label>
+                <select id="cfgElMat" onchange="calcPrice('${p.model}')" style="margin-top:5px">
+                    <option value="HT200">HT200</option><option value="SS304">304</option><option value="SS316">316</option>
+                    <option value="SS316L">316L</option><option value="SS2205">2205</option><option value="SS2507">2507</option>
+                </select>
+                <input type="number" id="cfgElQty" value="1" min="1" max="50" onchange="calcPrice('${p.model}')" style="width:60px;margin-top:5px"></div>`;
+            html += `<div class="config-item"><label><input type="checkbox" id="cfgDfEn" onchange="calcPrice('${p.model}')"> Double-Flange Elbow</label>
+                <select id="cfgDfMat" onchange="calcPrice('${p.model}')" style="margin-top:5px">
+                    <option value="HT200">HT200</option><option value="SS304">304</option><option value="SS316">316</option>
+                    <option value="SS316L">316L</option><option value="SS2205">2205</option><option value="SS2507">2507</option>
+                </select>
+                <input type="number" id="cfgDfQty" value="1" min="1" max="50" onchange="calcPrice('${p.model}')" style="width:60px;margin-top:5px"></div>`;
+            html += '</div></div>';
+
             // Price summary
-            html += `
-                <div class="price-summary">
-                    <h3>Price Summary</h3>
-                    <div class="price-row"><span>FOB Price (CNY)</span><span id="priceFobCny">¥0</span></div>
-                    <div class="price-row price-total"><span>FOB Price (USD)</span><span id="priceFobUsd">$0.00</span></div>
-                </div>
-            `;
-            
-            // Curve
+            html += `<div class="price-summary"><h3>Price Summary</h3>
+                <div class="price-row"><span>Subtotal (CNY)</span><span id="priceSub">¥0</span></div>
+                <div class="price-row"><span>FOB Price (CNY)</span><span id="priceFobCny">¥0</span></div>
+                <div class="price-row price-total"><span>FOB Price (USD)</span><span id="priceFobUsd">$0.00</span></div>
+            </div>`;
+
             if (data.curve) {
-                html += `
-                    <h3 style="margin-top:20px">Performance Curve</h3>
-                    <iframe src="/curves/${data.curve}" class="chart-frame"></iframe>
-                `;
+                html += `<h3 style="margin-top:20px">Performance Curve</h3><iframe src="/curves/${data.curve}" class="chart-frame"></iframe>`;
             }
-            
+
             document.getElementById('detailBody').innerHTML = html;
             calcPrice(p.model);
         }
 
         async function calcPrice(model) {
-            const options = {
+            const opts = {
                 discount: 0.55,
                 qty: parseInt(document.getElementById('cfgQty')?.value || 1),
-                freq: document.getElementById('cfgFreq')?.value || '50Hz',
-                impeller: document.getElementById('cfgImpeller')?.value || 'std',
-                body: document.getElementById('cfgBody')?.value || 'std',
+                freq: document.getElementById('cfgFreq')?.value || '50',
+                volt_adapt: document.getElementById('cfgVoltAdapt')?.value === '1',
                 bearing: document.getElementById('cfgBearing')?.value || 'std',
                 mech: document.getElementById('cfgMech')?.value || 'std',
-                cable: document.getElementById('cfgCable')?.value || '9m',
+                impeller: document.getElementById('cfgImpeller')?.value || 'std',
+                body: document.getElementById('cfgBody')?.value || 'std',
+                cable_type: document.getElementById('cfgCableType')?.value || 'regular',
+                cable_m: parseFloat(document.getElementById('cfgCableM')?.value || 9),
+                coupling: document.getElementById('cfgCoupling')?.value || 'none',
                 vibration: document.getElementById('cfgVib')?.checked || false,
+                vib_qty: parseInt(document.getElementById('cfgVibQty')?.value || 1),
                 pt100: document.getElementById('cfgPt100')?.checked || false,
-                protector: document.getElementById('cfgProt')?.checked || false
+                pt100_qty: parseInt(document.getElementById('cfgPt100Qty')?.value || 1),
+                protector: document.getElementById('cfgProt')?.checked || false,
+                prot_qty: parseInt(document.getElementById('cfgProtQty')?.value || 1),
+                spare: document.getElementById('cfgSpare')?.checked || false,
+                guide_rail: document.getElementById('cfgGrEn')?.checked || false,
+                gr_mat: document.getElementById('cfgGrMat')?.value || 'galv',
+                gr_len: parseInt(document.getElementById('cfgGrLen')?.value || 6),
+                chain: document.getElementById('cfgChEn')?.checked || false,
+                ch_type: document.getElementById('cfgChType')?.value || 'hc',
+                ch_grade: document.getElementById('cfgChGrade')?.value || '4',
+                ch_size: document.getElementById('cfgChSize')?.value || '',
+                ch_len: parseInt(document.getElementById('cfgChLen')?.value || 6),
+                ch_qty: parseInt(document.getElementById('cfgChQty')?.value || 1),
+                elbow: document.getElementById('cfgElEn')?.checked || false,
+                el_mat: document.getElementById('cfgElMat')?.value || 'HT200',
+                el_qty: parseInt(document.getElementById('cfgElQty')?.value || 1),
+                dflange: document.getElementById('cfgDfEn')?.checked || false,
+                df_mat: document.getElementById('cfgDfMat')?.value || 'HT200',
+                df_qty: parseInt(document.getElementById('cfgDfQty')?.value || 1)
             };
-            
-            const res = await fetch('/api/calc', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({model, options})
+            const res = await fetch('/api/calc', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({model, options:opts}) });
+            const r = await res.json();
+            if (r.error) return;
+            document.getElementById('priceSub').textContent = '¥' + r.subtotal.toLocaleString();
+            document.getElementById('priceFobCny').textContent = '¥' + r.fob_cny.toLocaleString();
+            document.getElementById('priceFobUsd').textContent = '$' + r.fob_usd.toLocaleString();
+        }
+
+        async function loadChainSizes() {
+            const type = document.getElementById('cfgChType')?.value || 'hc';
+            const grade = document.getElementById('cfgChGrade')?.value || '4';
+            const res = await fetch(`/api/chain_sizes?type=${type}&grade=${grade}`);
+            const data = await res.json();
+            const sel = document.getElementById('cfgChSize');
+            if (!sel) return;
+            sel.innerHTML = '';
+            (data.sizes || []).forEach(s => {
+                sel.innerHTML += `<option value="${s.size}">${s.size} (load ${s.load}t)</option>`;
             });
-            const result = await res.json();
-            
-            if (result.error) return;
-            
-            document.getElementById('priceFobCny').textContent = '¥' + result.fob_cny.toLocaleString();
-            document.getElementById('priceFobUsd').textContent = '$' + result.fob_usd.toLocaleString();
         }
 
-        function closeDetail() {
-            document.getElementById('detailModal').style.display = 'none';
-        }
+        function closeDetail() { document.getElementById('detailModal').style.display = 'none'; }
 
-        // 初始化
         loadProducts();
-        
-        // Enter 键搜索
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') doSearch();
-        });
+        document.addEventListener('keypress', function(e) { if (e.key === 'Enter') doSearch(); });
     </script>
 </body>
 </html>
