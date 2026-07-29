@@ -47,16 +47,30 @@ SERIES_INFO = {
 # 加载曲线映射
 curve_mapping = load_json('data/curve_mapping.json')
 
+SERIES_CURVE_MAP = {
+    'WQN': 'WQA',
+    'WQB': 'WQA',
+    'WQAF': 'WQA',
+    'WQE': 'WQE',
+    'WQF': 'WQF',
+}
+
 def find_curve(model):
-    """用 curve_mapping.json 匹配曲线"""
+    """用 curve_mapping.json 匹配曲线，WQN/WQB/WQAF 共用 WQA 曲线"""
     # 先精确匹配
     if model in curve_mapping:
         return curve_mapping[model]
-    # 模糊匹配（去掉 QG 后缀）
+    # 去掉 QG 后缀匹配
     base = model.upper().replace('QG', '')
     for k, v in curve_mapping.items():
         if k.upper().replace('QG', '') == base:
             return v
+    # 系列映射（WQN→WQA 等）
+    for src, dst in SERIES_CURVE_MAP.items():
+        mapped = model.upper().replace(src, dst).replace('QG', '')
+        for k, v in curve_mapping.items():
+            if k.upper().replace('QG', '') == mapped:
+                return v
     return None
 
 # 英文界面翻译
