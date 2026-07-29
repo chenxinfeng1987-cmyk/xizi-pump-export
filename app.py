@@ -190,7 +190,7 @@ def calc_price(model, options):
     discount = options.get('discount', 0.55)
     qty = options.get('qty', 1)
     freq = options.get('freq', '50')
-    is_voltage_adapt = options.get('volt_adapt', False)
+    volt = options.get('volt', '380')
     
     # 基础价格（面价 × 折扣）
     base = face * discount
@@ -290,8 +290,8 @@ def calc_price(model, options):
     if freq == '60':
         subtotal *= 1.1
     
-    # 电压适配加价
-    if is_voltage_adapt:
+    # 电压定制加价
+    if volt == 'customize':
         subtotal *= 1.1
     
     # FOB 加价 5%

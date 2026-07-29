@@ -178,17 +178,12 @@
             // Voltage
             html += `<div class="config-item"><label>Voltage</label>
                 <select id="cfgVolt" onchange="calcPrice('${p.model}')">
-                    <option value="380">380V</option><option value="220">220V</option>
-                </select></div>`;
-            // Voltage adaptation
-            html += `<div class="config-item"><label>Voltage Adaptation</label>
-                <select id="cfgVoltAdapt" onchange="calcPrice('${p.model}')">
-                    <option value="0">No</option><option value="1">Yes (+10%)</option>
+                    <option value="380">380V</option><option value="customize">Customize</option>
                 </select></div>`;
             // Frequency
             html += `<div class="config-item"><label>Frequency</label>
                 <select id="cfgFreq" onchange="calcPrice('${p.model}')">
-                    <option value="50">50Hz</option><option value="60">60Hz (+10%)</option>
+                    <option value="50">50Hz</option><option value="60">60Hz</option>
                 </select></div>`;
             // Bearing
             html += `<div class="config-item"><label>Bearing</label>
@@ -201,7 +196,6 @@
             html += `<div class="config-item"><label>Mechanical Seal</label>
                 <select id="cfgMech" onchange="calcPrice('${p.model}')">
                     <option value="std">Standard</option>
-                    ${price.mech_bgm ? '<option value="bgm">Burgmann</option>' : ''}
                 </select></div>`;
             // Impeller
             if (price.impeller_304 || price.impeller_ductile) {
@@ -245,13 +239,10 @@
             // === Sensors & Protectors ===
             html += '<div class="config-section"><h4>Sensors & Protectors</h4><div class="config-grid">';
             html += `<div class="config-item"><label><input type="checkbox" id="cfgVib" onchange="calcPrice('${p.model}')"> Vibration Sensor</label>
-                <div class="sub">¥2,200/pc</div>
                 <input type="number" id="cfgVibQty" value="1" min="1" max="10" onchange="calcPrice('${p.model}')" style="width:60px;margin-top:5px"></div>`;
             html += `<div class="config-item"><label><input type="checkbox" id="cfgPt100" onchange="calcPrice('${p.model}')"> PT100 Temp Sensor</label>
-                <div class="sub">¥350/pc</div>
                 <input type="number" id="cfgPt100Qty" value="1" min="1" max="10" onchange="calcPrice('${p.model}')" style="width:60px;margin-top:5px"></div>`;
             html += `<div class="config-item"><label><input type="checkbox" id="cfgProt" onchange="calcPrice('${p.model}')"> Protector</label>
-                <div class="sub">¥350/pc</div>
                 <input type="number" id="cfgProtQty" value="1" min="1" max="10" onchange="calcPrice('${p.model}')" style="width:60px;margin-top:5px"></div>`;
             // Spare parts
             html += `<div class="config-item"><label><input type="checkbox" id="cfgSpare" onchange="calcPrice('${p.model}')"> Spare Parts</label>
@@ -328,7 +319,7 @@
                 discount: 0.55,
                 qty: parseInt(document.getElementById('cfgQty')?.value || 1),
                 freq: document.getElementById('cfgFreq')?.value || '50',
-                volt_adapt: document.getElementById('cfgVoltAdapt')?.value === '1',
+                volt: document.getElementById('cfgVolt')?.value || '380',
                 bearing: document.getElementById('cfgBearing')?.value || 'std',
                 mech: document.getElementById('cfgMech')?.value || 'std',
                 impeller: document.getElementById('cfgImpeller')?.value || 'std',
