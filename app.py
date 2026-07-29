@@ -206,7 +206,10 @@ def calc_price(model, options):
     # 机封
     mech_type = options.get('mech', 'std')
     if mech_type == 'bgm':
-        base += price_info.get('mech_bgm', 0) - price_info.get('mech_std', 0)
+        bgm_price = price_info.get('mech_bgm', 0)
+        if bgm_price == 0:
+            bgm_price = int(price_info.get('mech_std', 0) * 2.3) if price_info.get('mech_std', 0) > 0 else 0
+        base += bgm_price - price_info.get('mech_std', 0)
     
     # 叶轮
     impeller_type = options.get('impeller', 'std')
