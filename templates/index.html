@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>西子泵业选型系统{{ ' - Export' if export_mode else '' }}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- Nav -->
+<div class="nav-bar">
+  <div class="brand">{{ '西子泵业' if not export_mode else 'Hangzhou Xizi Pumps' }} <small>{{ 'Selection & Quotation' }}</small>{{ ('<span style="font-size:10px;background:#1976d2;color:#fff;padding:2px 6px;border-radius:3px;margin-left:6px">EXPORT</span>' if export_mode else '') | safe }}</div>
+</div>
+
+<div id="app" class="container">
+  <div id="page-home">
+    <div style="text-align:center;margin:20px 0 8px">
+      <div style="font-size:13px;color:#888;">{{ '请选择产品系列' if not export_mode else 'Select Product Series' }}</div>
+    </div>
+    <div class="home-grid" id="series-grid"></div>
+
+    <div class="search-card">
+      <h3>{{ '按参数搜索' if not export_mode else 'Search by Parameters' }}</h3>
+      <div style="margin-bottom:10px" id="series-badges"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>{{ '流量 (m³/h)' if not export_mode else 'Flow (m³/h)' }}</label>
+          <input type="number" id="search-flow" placeholder="{{ '如 15' if not export_mode else 'e.g. 15' }}">
+        </div>
+        <div class="form-group">
+          <label>{{ '扬程 (m)' if not export_mode else 'Head (m)' }}</label>
+          <input type="number" id="search-head" placeholder="{{ '如 20' if not export_mode else 'e.g. 20' }}">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="doSearch()">{{ '搜索' if not export_mode else 'Search' }}</button>
+    </div>
+  </div>
+
+  <div id="page-results" style="display:none">
+    <div class="back-btn" onclick="showPage('home')">{{ '← 返回' if not export_mode else '← Back' }}</div>
+    <div id="results-content"></div>
+  </div>
+
+  <div id="page-detail" style="display:none">
+    <div class="back-btn" onclick="showPage('results')">{{ '← 返回列表' if not export_mode else '← Back to List' }}</div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<script>
+const EXPORT_MODE = {{ 'true' if export_mode else 'false' }};
+const CUR = EXPORT_MODE ? '$' : '¥';
+
+const T = {
+  'models': EXPORT_MODE ? 'models' : '个型号',
+  'all': EXPORT_MODE ? 'All' : '全部',
+  'no_result': EXPORT_MODE ? 'No matching models found\nPlease broaden your search' : '未找到匹配型号<br>请放宽搜索条件',
+  'flow_tag': EXPORT_MODE ? 'Flow' : '流量',
+  'head_tag': EXPORT_MODE ? 'Head' : '扬程',
+  'dia': EXPORT_MODE ? 'Dia' : '口径',
+  'flow': EXPORT_MODE ? 'Flow' : '流量',
+  'head': EXPORT_MODE ? 'Head' : '扬程',
+  'power': EXPORT_MODE ? 'Power' : '功率',
+  'speed': EXPORT_MODE ? 'Speed' : '转速',
+  'series': EXPORT_MODE ? 'Series' : '系列',
+  'face_price': EXPORT_MODE ? 'List Price (FAC)' : '面价 (FAC)',
+  'perf_curve': EXPORT_MODE ? 'Performance Curve' : '性能曲线',
+  'click_to_zoom': EXPORT_MODE ? 'Click to zoom' : '点击放大查看',
+  'no_curve': EXPORT_MODE ? 'Curve not available for this model' : '暂无该型号性能曲线',
+  'options': EXPORT_MODE ? 'Options & Accessories' : '选配件',
+  'cable_length': EXPORT_MODE ? 'Cable Length' : '电缆长度',
+  'meters_with': EXPORT_MODE ? 'm (incl. ' : '米 (含',
+  'impeller': EXPORT_MODE ? 'Impeller Material' : '叶轮材质',
+  'standard': EXPORT_MODE ? 'Standard' : '标准',
+  'bearing_brand': EXPORT_MODE ? 'Bearing Brand' : '轴承品牌',
+  'no_select': EXPORT_MODE ? 'None' : '不选',
+  'heavy_coupling': EXPORT_MODE ? 'Heavy Coupling HT200' : '重型联轴器 HT200',
+  'light_coupling': EXPORT_MODE ? 'Light Coupling HT200' : '轻型联轴器 HT200',
+  'ohf_coupling': EXPORT_MODE ? 'O-Type Coupling 304' : 'O型联轴器 304',
+  'alert_search': EXPORT_MODE ? 'Please select a series or enter parameters' : '请选择系列或输入参数',
+  'search_params': EXPORT_MODE ? 'Search by Parameters' : '按参数搜索',
+};
+const __ = (k) => T[k] || k;
+
+const SERIES_COLORS = {
+  WQA: '#1565c0', WQAF: '#00838f', WQB: '#2e7d32',
+  WQE: '#e65100', WQF: '#6a1b9a', WQN: '#c62828'
+};
+const SERIES_NAMES = {
+  WQA: 'WQA', WQAF: 'WQAF', WQB: 'WQB',
+  WQE: 'WQE', WQF: 'WQF', WQN: 'WQN'
+};
+const COUPLING_TYPE = {
+  heavy_ht200: __('heavy_coupling'),
+  light_ht200: __('light_coupling'),
+  ohf_304: __('ohf_coupling'),
+};
+
+let currentSeries = '';
+let currentResults = [];
+
+function showPage(name) {
+  document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
+  document.getElementById('page-' + name).style.display = 'block';
+}
+
+fetch('/api/series' + (EXPORT_MODE ? '?mode=export' : '')).then(r => r.json()).then(data => {
+  const grid = document.getElementById('series-grid');
+  grid.innerHTML = Object.entries(data).map(([key, val]) => `
+    <div class="grid-item" onclick="selectSeries('${key}')">
+      <div class="icon" style="background:${val.color}">${key[0]}</div>
+      <div class="name">${val.name}</div>
+      <div class="count">${val.count} ${__('models')}</div>
+    </div>
+  `).join('');
+
+  const badges = document.getElementById('series-badges');
+  badges.innerHTML = `<span class="series-badge" style="background:#888" data-series="" onclick="toggleSeries('')">${__('all')}</span>` +
+    Object.entries(data).map(([key, val]) =>
+      `<span class="series-badge" style="background:${val.color}" data-series="${key}" onclick="toggleSeries('${key}')">${key}</span>`
+    ).join('');
+});
+
+function toggleSeries(series) {
+  const items = document.querySelectorAll('.series-badge');
+  if (items.length === 0) return;
+  items.forEach(b => b.classList.remove('active'));
+  if (series) {
+    const el = document.querySelector(`.series-badge[data-series="${series}"]`);
+    if (el) el.classList.add('active');
+  } else {
+    items[0].classList.add('active');
+  }
+  currentSeries = series;
+}
+
+function selectSeries(series) {
+  currentSeries = series;
+  doSearch();
+}
+
+function doSearch() {
+  const flow = document.getElementById('search-flow').value;
+  const head = document.getElementById('search-head').value;
+  if (!flow && !head && !currentSeries) {
+    alert(__('alert_search'));
+    return;
+  }
+
+  let url = '/api/products?';
+  if (EXPORT_MODE) url += 'mode=export&';
+  if (currentSeries) url += 'series=' + currentSeries + '&';
+  if (flow) url += 'flow=' + flow + '&';
+  if (head) url += 'head=' + head;
+
+  fetch(url).then(r => r.json()).then(data => {
+    currentResults = data;
+    renderResults(data);
+  });
+}
+
+function renderResults(products) {
+  const el = document.getElementById('results-content');
+  if (products.length === 0) {
+    el.innerHTML = '<div class="no-result"><span class="emoji">&#128270;</span>' + __('no_result') + '</div>';
+    showPage('results');
+    return;
+  }
+
+  const flow = document.getElementById('search-flow').value;
+  const head = document.getElementById('search-head').value;
+  const f = parseFloat(flow) || 0;
+  const h = parseFloat(head) || 0;
+
+  let bestIdx = 0, bestScore = Infinity;
+  products.forEach((p, i) => {
+    const score = Math.abs(p.flow - f) + Math.abs(p.head - h) * 2;
+    if (score < bestScore) { bestScore = score; bestIdx = i; }
+  });
+
+  el.innerHTML = products.map((p, i) => {
+    const isBest = i === bestIdx && (f > 0 || h > 0);
+    const flowMatch = !f || Math.abs(p.flow - f) / Math.max(p.flow, 0.1) <= 0.15;
+    const headMatch = !h || Math.abs(p.head - h) / Math.max(p.head, 0.1) <= 0.15;
+
+    return `<div class="model-card ${isBest ? 'best' : ''}" onclick="showDetail('${p.model}')">
+      <div class="model-name">${p.model}</div>
+      <div class="specs">
+        ${__('dia')} ${p.dia}mm &middot; ${__('flow')} ${p.flow}m³/h &middot; ${__('head')} ${p.head}m &middot; ${__('power')} ${p.power}kW
+        <br>
+        <span class="tag" style="background:${flowMatch ? '#e8f5e9' : '#ffebee'};color:${flowMatch ? '#2e7d32' : '#c62828'}">${__('flow_tag')}${flowMatch ? '✓' : '△'}</span>
+        <span class="tag" style="background:${headMatch ? '#e8f5e9' : '#ffebee'};color:${headMatch ? '#2e7d32' : '#c62828'}">${__('head_tag')}${headMatch ? '✓' : '△'}</span>
+        <span class="tag" style="background:${SERIES_COLORS[p.series]}22;color:${SERIES_COLORS[p.series]}">${p.series}</span>
+      </div>
+      <div class="price-row">
+        <span class="fob">$${p.fob_50}</span>
+        ${EXPORT_MODE ? '' : `<span class="face">面价 ¥${p.face}</span>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  showPage('results');
+}
+
+function showDetail(model) {
+  fetch('/api/product/' + model + (EXPORT_MODE ? '?mode=export' : '')).then(r => r.json()).then(data => {
+    const p = data.product;
+    const price = data.price;
+    const coupling = data.coupling;
+
+    let breakdownHtml = '';
+    let facePrice = price.face || p.face;
+    let impellerCost = price.impeller_std || 0;
+    let cableCost = price.cable_9m || 0;
+    let mechCost = price.mech_std || 0;
+    let bearingCost = price.bearing_std || 0;
+    let totalParts = impellerCost + cableCost + mechCost + bearingCost;
+
+    if (Object.keys(price).length > 0) {
+      breakdownHtml = Object.entries(price)
+        .filter(([k]) => k !== 'face')
+        .map(([k, v]) => `<div class="acc-row">
+          <span class="label">${k.replace(/_/g, ' ')}</span>
+          <span>¥${v}</span>
+        </div>`).join('');
+    }
+
+    let couplingHtml = '';
+    for (const [type, sizes] of Object.entries(coupling)) {
+      const typeName = COUPLING_TYPE[type] || type;
+      couplingHtml += `<div class="acc-row">
+        <span class="label">${typeName}</span>
+        <select onchange="updateCoupling('${type}', this.value)">
+          <option value="">${__('no_select')}</option>
+          ${Object.entries(sizes).map(([size, cost]) =>
+            `<option value="${cost}">DN${size} (${CUR}${cost})</option>`
+          ).join('')}
+        </select>
+        <span class="unit-price" id="coupling-${type}"></span>
+      </div>`;
+    }
+
+    const el = document.getElementById('detail-content');
+
+    let curveHtml = '';
+    if (data.curve) {
+      curveHtml = `<div class="acc-section">
+        <h4>${__('perf_curve')}</h4>
+        <div style="text-align:center">
+          <embed src="/static/curves/${data.curve}" type="application/pdf" width="100%" height="400px" style="border-radius:8px;border:1px solid #eee">
+          <div style="margin-top:8px">
+            <a href="/static/curves/${data.curve}" target="_blank" style="display:inline-block;margin:0 4px;padding:6px 16px;background:#1976d2;color:#fff;border-radius:4px;text-decoration:none;font-size:13px">${EXPORT_MODE ? 'Open in New Window' : '新窗口打开'}</a>
+            <a href="/static/curves/${data.curve}" target="_blank" download="${data.curve}" style="display:inline-block;margin:0 4px;padding:6px 16px;background:#43a047;color:#fff;border-radius:4px;text-decoration:none;font-size:13px">${EXPORT_MODE ? 'Download PDF' : '下载 PDF'}</a>
+          </div>
+        </div>
+      </div>`;
+    } else if (p.series === 'WQA') {
+      curveHtml = `<div class="acc-section" style="text-align:center;color:#999;font-size:13px">
+        <div>${__('no_curve')}</div>
+      </div>`;
+    }
+
+    el.innerHTML = `
+      <div class="detail-card">
+        <h2>${p.model}</h2>
+        <div class="subtitle">${SERIES_NAMES[p.series]} ${__('series')} &middot; ${__('dia')} ${p.dia}mm</div>
+
+        <table class="detail-table">
+          <tr><td>${__('flow')}</td><td>${p.flow} m³/h</td></tr>
+          <tr><td>${__('head')}</td><td>${p.head} m</td></tr>
+          <tr><td>${__('power')}</td><td>${p.power} kW</td></tr>
+          <tr><td>${__('speed')}</td><td>${data.speed || 1450} RPM</td></tr>
+          ${EXPORT_MODE ? '' : `<tr><td>${__('face_price')}</td><td>¥${facePrice}</td></tr>`}
+          <tr><td>FOB 50Hz</td><td>$${p.fob_50}</td></tr>
+          <tr><td>FOB 60Hz</td><td>$${p.fob_60}</td></tr>
+        </table>
+
+        ${curveHtml}
+
+        <div class="acc-section">
+          <h4>${__('options')}</h4>
+          <div class="acc-row">
+            <span class="label">${__('cable_length')}</span>
+            <input type="number" value="9" min="0" max="100" onchange="updateCable(this.value)">
+            <span class="unit-price">${__('meters_with')}${CUR}${price.cable_9m || 0})</span>
+          </div>
+          <div class="acc-row">
+            <span class="label">${__('impeller')}</span>
+            <select onchange="updateImpeller(this.value)">
+              <option value="std">${__('standard')} (${CUR}${price.impeller_std || 0})</option>
+              ${price.impeller_304 ? `<option value="304">304 SS (${CUR}${price.impeller_304})</option>` : ''}
+            </select>
+          </div>
+          <div class="acc-row">
+            <span class="label">${__('bearing_brand')}</span>
+            <select onchange="updateBearing(this.value)">
+              <option value="std">${__('standard')} (${CUR}${price.bearing_std || 0})</option>
+              ${price.bearing_nsk ? `<option value="nsk">NSK (${CUR}${price.bearing_nsk})</option>` : ''}
+              ${price.bearing_skf ? `<option value="skf">SKF (${CUR}${price.bearing_skf})</option>` : ''}
+            </select>
+          </div>
+          ${couplingHtml}
+        </div>
+      </div>`;
+
+    window._priceData = price;
+    window._facePrice = facePrice;
+    showPage('detail');
+  });
+}
+
+let _selectedCoupling = {};
+function updateCoupling(type, cost) {
+  _selectedCoupling[type] = parseInt(cost) || 0;
+  recalcTotal();
+}
+function updateCable(meters) {
+  const base = (window._priceData && window._priceData.cable_9m) || 0;
+  const perMeter = base / 9;
+  const extra = parseInt(meters || 0) * perMeter;
+  recalcTotal();
+}
+function updateImpeller(val) {
+  recalcTotal();
+}
+function updateBearing(val) {
+  recalcTotal();
+}
+function recalcTotal() {
+  const price = window._priceData || {};
+  const face = window._facePrice || 0;
+  const impeller = parseInt(document.querySelector('[onchange*="updateImpeller"]')?.value === '304' ? (price.impeller_304 || 0) : (price.impeller_std || 0)) || 0;
+  const bearing = parseInt(document.querySelector('[onchange*="updateBearing"]')?.value === 'nsk' ? (price.bearing_nsk || 0) : document.querySelector('[onchange*="updateBearing"]')?.value === 'skf' ? (price.bearing_skf || 0) : (price.bearing_std || 0)) || 0;
+  const mech = parseInt(price.mech_std || 0);
+  const cable = parseInt(price.cable_9m || 0);
+  const coupling = Object.values(_selectedCoupling).reduce((a, b) => a + b, 0);
+  const parts = impeller + bearing + mech + cable + coupling;
+  document.getElementById('quote-total').textContent = '¥' + (face + parts);
+  document.getElementById('parts-total').textContent = '¥' + parts;
+}
+</script>
+</body>
+</html>
