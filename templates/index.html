@@ -11,9 +11,10 @@
         .hero h1 { font-size: 2.5em; margin-bottom: 10px; }
         .hero p { font-size: 1.2em; opacity: 0.9; }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .search-box { background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-bottom: 30px; }
-        .search-row { display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; }
-        .search-group { flex: 1; min-width: 150px; }
+        .search-box { display: flex; gap: 25px; align-items: flex-start; background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .series-left { flex-shrink: 0; }
+        .series-right { display: flex; flex-direction: column; gap: 15px; min-width: 220px; }
+        .series-right .search-group { min-width: 0; }
         .search-group label { display: block; font-weight: 600; margin-bottom: 5px; color: #555; }
         .search-group input, .search-group select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; }
         .search-group input:focus, .search-group select:focus { border-color: #1a237e; outline: none; }
@@ -51,7 +52,11 @@
         .loading { text-align: center; padding: 40px; color: #888; }
         .row2 { display: flex; gap: 15px; }
         .row2 > * { flex: 1; }
-        .series-selector { display: grid; grid-template-columns: repeat(4, 150px); gap: 10px; justify-content: center; margin-bottom: 25px; }
+        .series-selector { display: grid; grid-template-columns: repeat(4, 150px); gap: 10px; }
+        .search-box { display: flex; gap: 25px; align-items: flex-start; background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .series-left { flex: 1; }
+        .series-right { display: flex; flex-direction: column; gap: 15px; min-width: 220px; }
+        .series-right .search-group { min-width: 0; }
         .series-card { background: white; border: 2px solid #e0e0e0; border-radius: 10px; padding: 8px; cursor: pointer; transition: all 0.2s; width: 150px; text-align: center; }
         .series-card:hover { border-color: #1a237e; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .series-card.active { border-color: #1a237e; background: #e3f2fd; box-shadow: 0 4px 12px rgba(26,35,126,0.2); }
@@ -70,20 +75,22 @@
 
     <div class="container">
         <div class="search-box">
-            <div class="series-selector" id="seriesSelector">
-                <div class="series-card all-card active" onclick="selectSeries('')">
-                    <div class="all-icon">All</div>
-                    <div class="series-name">All Series</div>
+            <div class="series-left">
+                <div class="series-selector" id="seriesSelector">
+                    <div class="series-card all-card active" onclick="selectSeries('')">
+                        <div class="all-icon">All</div>
+                        <div class="series-name">All Series</div>
+                    </div>
+                    {% for s in series_list %}
+                    <div class="series-card" onclick="selectSeries('{{ s.key }}')">
+                        <img src="/static/{{ s.key }}.png" alt="{{ s.name }}" onerror="this.style.display='none'">
+                        <div class="series-name">{{ s.key }}</div>
+                        <div class="series-count">{{ s.count }} models</div>
+                    </div>
+                    {% endfor %}
                 </div>
-                {% for s in series_list %}
-                <div class="series-card" onclick="selectSeries('{{ s.key }}')">
-                    <img src="/static/{{ s.key }}.png" alt="{{ s.name }}" onerror="this.style.display='none'">
-                    <div class="series-name">{{ s.key }}</div>
-                    <div class="series-count">{{ s.count }} models</div>
-                </div>
-                {% endfor %}
             </div>
-            <div class="search-row">
+            <div class="series-right">
                 <div class="search-group">
                     <label>Discharge (DN)</label>
                     <select id="selDN" onchange="loadProducts()">
