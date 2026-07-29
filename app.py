@@ -36,6 +36,7 @@ ACC = PRICE_DATA.get('ACC', {})
 # 系列信息
 SERIES_INFO = {
     'WQA': {'en': 'WQA Sewage Pump', 'zh': 'WQA潜水排污泵'},
+    'WQA-QG': {'en': 'WQA-QG High Head', 'zh': 'WQA-QG高扬程'},
     'WQ': {'en': 'WQ Sewage Pump', 'zh': 'WQ潜水排污泵'},
     'WQN': {'en': 'WQN Internal Cooling', 'zh': 'WQN内循环冷却'},
     'WQF': {'en': 'WQF Sewage Pump', 'zh': 'WQF潜水排污泵'},
@@ -316,7 +317,12 @@ def index():
     export = EXPORT_MODE or request.args.get('mode') == 'export'
     series_list = []
     for key, info in SERIES_INFO.items():
-        count = sum(1 for p in DATA if p.get('series', '').upper() == key.upper())
+        if key == 'WQA-QG':
+            count = sum(1 for p in DATA if p.get('series', '').upper() == 'WQA' and p.get('model', '').upper().endswith('QG'))
+        elif key == 'WQA':
+            count = sum(1 for p in DATA if p.get('series', '').upper() == 'WQA' and not p.get('model', '').upper().endswith('QG'))
+        else:
+            count = sum(1 for p in DATA if p.get('series', '').upper() == key.upper())
         if count > 0:
             series_list.append({
                 'key': key,
@@ -340,7 +346,12 @@ def api_products():
     
     results = DATA
     if series:
-        results = [p for p in results if p.get('series', '').upper() == series.upper() or p.get('model', '').upper().startswith(series.upper())]
+        if series.upper() == 'WQA-QG':
+            results = [p for p in results if p.get('series', '').upper() == 'WQA' and p.get('model', '').upper().endswith('QG')]
+        elif series.upper() == 'WQA':
+            results = [p for p in results if p.get('series', '').upper() == 'WQA' and not p.get('model', '').upper().endswith('QG')]
+        else:
+            results = [p for p in results if p.get('series', '').upper() == series.upper() or p.get('model', '').upper().startswith(series.upper())]
     if dn:
         dn_val = dn.strip()
         results = [p for p in results if str(p.get('dia', '') or '').strip() == dn_val]
