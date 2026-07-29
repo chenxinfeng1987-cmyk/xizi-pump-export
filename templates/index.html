@@ -34,6 +34,10 @@
         .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .config-section { margin-bottom: 20px; }
         .config-section h4 { color: #1a237e; margin-bottom: 10px; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px; }
+        .section-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px; margin-bottom: 10px; }
+        .section-header h4 { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+        .toggle-label { display: flex; align-items: center; gap: 6px; font-weight: 600; color: #555; cursor: pointer; font-size: 0.95em; }
+        .toggle-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
         .config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
         .config-item { background: #f8f9fa; border-radius: 8px; padding: 15px; }
         .config-item label { display: block; font-weight: 600; margin-bottom: 8px; color: #555; font-size: 0.9em; }
@@ -237,7 +241,7 @@
             html += '</div></div>';
 
             // === Sensors & Protectors ===
-            html += '<div class="config-section"><h4>Sensors & Protectors</h4><div class="config-grid">';
+            html += `<div class="config-section"><div class="section-header"><h4>Sensors & Protectors</h4><label class="toggle-label"><input type="checkbox" id="cfgSensorEn" onchange="toggleSection('sensorContent',this.checked)"> Enable</label></div><div id="sensorContent" class="section-content" style="display:none"><div class="config-grid">`;
             html += `<div class="config-item"><label><input type="checkbox" id="cfgVib" onchange="calcPrice('${p.model}')"> Vibration Sensor</label>
                 <input type="number" id="cfgVibQty" value="1" min="1" max="10" onchange="calcPrice('${p.model}')" style="width:60px;margin-top:5px"></div>`;
             html += `<div class="config-item"><label><input type="checkbox" id="cfgPt100" onchange="calcPrice('${p.model}')"> PT100 Temp Sensor</label>
@@ -247,11 +251,10 @@
             // Spare parts
             html += `<div class="config-item"><label><input type="checkbox" id="cfgSpare" onchange="calcPrice('${p.model}')"> Spare Parts</label>
                 <div class="sub">Bearing + Mech Seal</div></div>`;
-            html += '</div></div>';
+            html += '</div></div></div>';
 
             // === Guide Rail ===
-            html += '<div class="config-section"><h4>Guide Rail</h4><div class="config-grid">';
-            html += `<div class="config-item"><label><input type="checkbox" id="cfgGrEn" onchange="calcPrice('${p.model}')"> Enable</label></div>`;
+            html += `<div class="config-section"><div class="section-header"><h4>Guide Rail</h4><label class="toggle-label"><input type="checkbox" id="cfgGrEn" onchange="toggleSection('grContent',this.checked);calcPrice('${p.model}')"> Enable</label></div><div id="grContent" class="section-content" style="display:none"><div class="config-grid">`;
             html += `<div class="config-item"><label>Material</label>
                 <select id="cfgGrMat" onchange="calcPrice('${p.model}')">
                     <option value="galv">Galvanized</option><option value="ss304">SS304</option><option value="ss316">SS316</option>
@@ -262,11 +265,10 @@
                     <option value="30">30</option><option value="36">36</option><option value="42">42</option><option value="48">48</option>
                     <option value="54">54</option><option value="60">60</option>
                 </select></div>`;
-            html += '</div></div>';
+            html += '</div></div></div>';
 
             // === Chain Hoist ===
-            html += '<div class="config-section"><h4>Chain Hoist</h4><div class="config-grid">';
-            html += `<div class="config-item"><label><input type="checkbox" id="cfgChEn" onchange="loadChainSizes();calcPrice('${p.model}')"> Enable</label></div>`;
+            html += `<div class="config-section"><div class="section-header"><h4>Chain Hoist</h4><label class="toggle-label"><input type="checkbox" id="cfgChEn" onchange="toggleSection('chContent',this.checked);loadChainSizes();calcPrice('${p.model}')"> Enable</label></div><div id="chContent" class="section-content" style="display:none"><div class="config-grid">`;
             html += `<div class="config-item"><label>Type</label>
                 <select id="cfgChType" onchange="loadChainSizes();calcPrice('${p.model}')">
                     <option value="hc">Standard Chain</option><option value="ss">SS304 Chain</option>
@@ -281,10 +283,10 @@
                 <input type="number" id="cfgChLen" value="6" min="1" max="100" step="1" onchange="calcPrice('${p.model}')"></div>`;
             html += `<div class="config-item"><label>Qty</label>
                 <input type="number" id="cfgChQty" value="1" min="1" max="50" onchange="calcPrice('${p.model}')"></div>`;
-            html += '</div></div>';
+            html += '</div></div></div>';
 
             // === Elbows ===
-            html += '<div class="config-section"><h4>Elbows & Double-Flange</h4><div class="config-grid">';
+            html += `<div class="config-section"><div class="section-header"><h4>Elbows & Double-Flange</h4></div><div class="config-grid">`;
             html += `<div class="config-item"><label><input type="checkbox" id="cfgElEn" onchange="calcPrice('${p.model}')"> Elbow</label>
                 <select id="cfgElMat" onchange="calcPrice('${p.model}')" style="margin-top:5px">
                     <option value="HT200">HT200</option><option value="SS304">304</option><option value="SS316">316</option>
@@ -372,6 +374,11 @@
         }
 
         function closeDetail() { document.getElementById('detailModal').style.display = 'none'; }
+
+        function toggleSection(id, show) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = show ? '' : 'none';
+        }
 
         loadProducts();
         document.addEventListener('keypress', function(e) { if (e.key === 'Enter') doSearch(); });
