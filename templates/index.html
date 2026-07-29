@@ -200,6 +200,7 @@
             html += `<div class="config-item"><label>Mechanical Seal</label>
                 <select id="cfgMech" onchange="calcPrice('${p.model}')">
                     <option value="std">Standard</option>
+                    ${price.mech_bgm ? '<option value="bgm">Burgmann</option>' : ''}
                 </select></div>`;
             // Impeller
             if (price.impeller_304 || price.impeller_ductile) {
