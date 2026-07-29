@@ -7,7 +7,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # 配置
 EXPORT_MODE = True
-EXCHANGE_RATE = 7.2
+EXCHANGE_RATE = 6.7
 
 # 加载数据
 def load_json(filename):
