@@ -1,344 +1,362 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>西子泵业选型系统{{ ' - Export' if export_mode else '' }}</title>
-<link rel="stylesheet" href="/static/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XIZI PUMPS - Professional Pump Selection</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; }
+        .hero { background: linear-gradient(135deg, #1a237e 0%, #0d47a1 50%, #01579b 100%); color: white; padding: 60px 20px; text-align: center; }
+        .hero h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .hero p { font-size: 1.2em; opacity: 0.9; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .search-box { background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .search-row { display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; }
+        .search-group { flex: 1; min-width: 150px; }
+        .search-group label { display: block; font-weight: 600; margin-bottom: 5px; color: #555; }
+        .search-group input, .search-group select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; }
+        .search-group input:focus, .search-group select:focus { border-color: #1a237e; outline: none; }
+        .btn { background: #1a237e; color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 16px; cursor: pointer; }
+        .btn:hover { background: #0d47a1; }
+        .btn-secondary { background: #6c757d; }
+        .btn-success { background: #28a745; }
+        .series-tags { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        .series-tag { padding: 8px 16px; border-radius: 20px; cursor: pointer; border: 2px solid #e0e0e0; background: white; }
+        .series-tag.active { background: #1a237e; color: white; border-color: #1a237e; }
+        .series-tag:hover { border-color: #1a237e; }
+        .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); transition: transform 0.2s; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .card h3 { color: #1a237e; margin-bottom: 10px; font-size: 1.1em; }
+        .card .specs { color: #666; font-size: 0.9em; margin-bottom: 15px; }
+        .card .specs span { display: inline-block; margin-right: 15px; }
+        .card .price { font-size: 1.2em; color: #d32f2f; font-weight: bold; }
+        .card .btn { width: 100%; margin-top: 10px; }
+        .detail-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; }
+        .detail-content { background: white; max-width: 900px; margin: 40px auto; border-radius: 12px; padding: 30px; position: relative; }
+        .detail-close { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; }
+        .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .config-item { background: #f8f9fa; border-radius: 8px; padding: 15px; }
+        .config-item label { display: block; font-weight: 600; margin-bottom: 8px; color: #555; }
+        .config-item select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
+        .config-item .price-hint { font-size: 0.85em; color: #888; margin-top: 5px; }
+        .price-summary { background: #e3f2fd; border-radius: 8px; padding: 20px; margin-top: 20px; }
+        .price-summary h3 { color: #1a237e; margin-bottom: 15px; }
+        .price-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .price-total { font-size: 1.4em; color: #d32f2f; font-weight: bold; border-top: 2px solid #1a237e; padding-top: 10px; }
+        .chart-frame { width: 100%; height: 400px; border: 1px solid #ddd; border-radius: 8px; margin-top: 20px; }
+        .loading { text-align: center; padding: 40px; color: #888; }
+    </style>
 </head>
 <body>
-
-<!-- Nav -->
-<div class="nav-bar">
-  <div class="brand">{{ '西子泵业' if not export_mode else 'Hangzhou Xizi Pumps' }} <small>{{ 'Selection & Quotation' }}</small>{{ ('<span style="font-size:10px;background:#1976d2;color:#fff;padding:2px 6px;border-radius:3px;margin-left:6px">EXPORT</span>' if export_mode else '') | safe }}</div>
-</div>
-
-<div id="app" class="container">
-  <div id="page-home">
-    <div style="text-align:center;margin:20px 0 8px">
-      <div style="font-size:13px;color:#888;">{{ '请选择产品系列' if not export_mode else 'Select Product Series' }}</div>
+    <div class="hero">
+        <h1>XIZI PUMPS</h1>
+        <p>Professional Sewage Pump Selection & Configuration System</p>
     </div>
-    <div class="home-grid" id="series-grid"></div>
 
-    <div class="search-card">
-      <h3>{{ '按参数搜索' if not export_mode else 'Search by Parameters' }}</h3>
-      <div style="margin-bottom:10px" id="series-badges"></div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>{{ '流量 (m³/h)' if not export_mode else 'Flow (m³/h)' }}</label>
-          <input type="number" id="search-flow" placeholder="{{ '如 15' if not export_mode else 'e.g. 15' }}">
+    <div class="container">
+        <div class="search-box">
+            <div class="search-row">
+                <div class="search-group">
+                    <label>Series</label>
+                    <select id="selSeries">
+                        <option value="">All Series</option>
+                        {% for s in series_list %}
+                        <option value="{{ s.key }}">{{ s.name }} ({{ s.count }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="search-group">
+                    <label>Model Keyword</label>
+                    <input type="text" id="txtQ" placeholder="e.g. 100WQA">
+                </div>
+                <div class="search-group">
+                    <label>Flow (m³/h)</label>
+                    <input type="number" id="txtFlow" placeholder="e.g. 100">
+                </div>
+                <div class="search-group">
+                    <label>Head (m)</label>
+                    <input type="number" id="txtHead" placeholder="e.g. 30">
+                </div>
+                <div class="search-group" style="flex: 0;">
+                    <label>&nbsp;</label>
+                    <button class="btn" onclick="doSearch()">Search</button>
+                </div>
+            </div>
+            <div class="series-tags" id="seriesTags"></div>
         </div>
-        <div class="form-group">
-          <label>{{ '扬程 (m)' if not export_mode else 'Head (m)' }}</label>
-          <input type="number" id="search-head" placeholder="{{ '如 20' if not export_mode else 'e.g. 20' }}">
-        </div>
-      </div>
-      <button class="btn btn-primary" onclick="doSearch()">{{ '搜索' if not export_mode else 'Search' }}</button>
+
+        <div id="resultsArea" class="loading">Loading...</div>
     </div>
-  </div>
 
-  <div id="page-results" style="display:none">
-    <div class="back-btn" onclick="showPage('home')">{{ '← 返回' if not export_mode else '← Back' }}</div>
-    <div id="results-content"></div>
-  </div>
-
-  <div id="page-detail" style="display:none">
-    <div class="back-btn" onclick="showPage('results')">{{ '← 返回列表' if not export_mode else '← Back to List' }}</div>
-    <div id="detail-content"></div>
-  </div>
-</div>
-
-<script>
-const EXPORT_MODE = {{ 'true' if export_mode else 'false' }};
-const CUR = EXPORT_MODE ? '$' : '¥';
-
-const T = {
-  'models': EXPORT_MODE ? 'models' : '个型号',
-  'all': EXPORT_MODE ? 'All' : '全部',
-  'no_result': EXPORT_MODE ? 'No matching models found\nPlease broaden your search' : '未找到匹配型号<br>请放宽搜索条件',
-  'flow_tag': EXPORT_MODE ? 'Flow' : '流量',
-  'head_tag': EXPORT_MODE ? 'Head' : '扬程',
-  'dia': EXPORT_MODE ? 'Dia' : '口径',
-  'flow': EXPORT_MODE ? 'Flow' : '流量',
-  'head': EXPORT_MODE ? 'Head' : '扬程',
-  'power': EXPORT_MODE ? 'Power' : '功率',
-  'speed': EXPORT_MODE ? 'Speed' : '转速',
-  'series': EXPORT_MODE ? 'Series' : '系列',
-  'face_price': EXPORT_MODE ? 'List Price (FAC)' : '面价 (FAC)',
-  'perf_curve': EXPORT_MODE ? 'Performance Curve' : '性能曲线',
-  'click_to_zoom': EXPORT_MODE ? 'Click to zoom' : '点击放大查看',
-  'no_curve': EXPORT_MODE ? 'Curve not available for this model' : '暂无该型号性能曲线',
-  'options': EXPORT_MODE ? 'Options & Accessories' : '选配件',
-  'cable_length': EXPORT_MODE ? 'Cable Length' : '电缆长度',
-  'meters_with': EXPORT_MODE ? 'm (incl. ' : '米 (含',
-  'impeller': EXPORT_MODE ? 'Impeller Material' : '叶轮材质',
-  'standard': EXPORT_MODE ? 'Standard' : '标准',
-  'bearing_brand': EXPORT_MODE ? 'Bearing Brand' : '轴承品牌',
-  'no_select': EXPORT_MODE ? 'None' : '不选',
-  'heavy_coupling': EXPORT_MODE ? 'Heavy Coupling HT200' : '重型联轴器 HT200',
-  'light_coupling': EXPORT_MODE ? 'Light Coupling HT200' : '轻型联轴器 HT200',
-  'ohf_coupling': EXPORT_MODE ? 'O-Type Coupling 304' : 'O型联轴器 304',
-  'alert_search': EXPORT_MODE ? 'Please select a series or enter parameters' : '请选择系列或输入参数',
-  'search_params': EXPORT_MODE ? 'Search by Parameters' : '按参数搜索',
-};
-const __ = (k) => T[k] || k;
-
-const SERIES_COLORS = {
-  WQA: '#1565c0', WQAF: '#00838f', WQB: '#2e7d32',
-  WQE: '#e65100', WQF: '#6a1b9a', WQN: '#c62828'
-};
-const SERIES_NAMES = {
-  WQA: 'WQA', WQAF: 'WQAF', WQB: 'WQB',
-  WQE: 'WQE', WQF: 'WQF', WQN: 'WQN'
-};
-const COUPLING_TYPE = {
-  heavy_ht200: __('heavy_coupling'),
-  light_ht200: __('light_coupling'),
-  ohf_304: __('ohf_coupling'),
-};
-
-let currentSeries = '';
-let currentResults = [];
-
-function showPage(name) {
-  document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
-  document.getElementById('page-' + name).style.display = 'block';
-}
-
-fetch('/api/series' + (EXPORT_MODE ? '?mode=export' : '')).then(r => r.json()).then(data => {
-  const grid = document.getElementById('series-grid');
-  grid.innerHTML = Object.entries(data).map(([key, val]) => `
-    <div class="grid-item" onclick="selectSeries('${key}')">
-      <div class="icon" style="background:${val.color}">${key[0]}</div>
-      <div class="name">${val.name}</div>
-      <div class="count">${val.count} ${__('models')}</div>
+    <div class="detail-modal" id="detailModal">
+        <div class="detail-content">
+            <span class="detail-close" onclick="closeDetail()">&times;</span>
+            <div id="detailBody"></div>
+        </div>
     </div>
-  `).join('');
 
-  const badges = document.getElementById('series-badges');
-  badges.innerHTML = `<span class="series-badge" style="background:#888" data-series="" onclick="toggleSeries('')">${__('all')}</span>` +
-    Object.entries(data).map(([key, val]) =>
-      `<span class="series-badge" style="background:${val.color}" data-series="${key}" onclick="toggleSeries('${key}')">${key}</span>`
-    ).join('');
-});
+    <script>
+        const RATE = {{ rate }};
+        let currentSeries = '';
+        let allProducts = [];
 
-function toggleSeries(series) {
-  const items = document.querySelectorAll('.series-badge');
-  if (items.length === 0) return;
-  items.forEach(b => b.classList.remove('active'));
-  if (series) {
-    const el = document.querySelector(`.series-badge[data-series="${series}"]`);
-    if (el) el.classList.add('active');
-  } else {
-    items[0].classList.add('active');
-  }
-  currentSeries = series;
-}
+        async function loadProducts() {
+            const params = new URLSearchParams({
+                series: currentSeries,
+                q: document.getElementById('txtQ').value,
+                flow: document.getElementById('txtFlow').value,
+                head: document.getElementById('txtHead').value
+            });
+            const res = await fetch('/api/products?' + params);
+            const data = await res.json();
+            allProducts = data.products;
+            renderProducts(data.products);
+        }
 
-function selectSeries(series) {
-  currentSeries = series;
-  doSearch();
-}
+        function renderProducts(products) {
+            const area = document.getElementById('resultsArea');
+            if (!products.length) {
+                area.innerHTML = '<div class="loading">No products found</div>';
+                return;
+            }
+            let html = '<div class="results">';
+            for (const p of products) {
+                const hasPrice = p.has_price;
+                html += `
+                    <div class="card">
+                        <h3>${p.model}</h3>
+                        <div class="specs">
+                            <span>Flow: ${p.flow} m³/h</span>
+                            <span>Head: ${p.head} m</span>
+                            <span>Power: ${p.power} kW</span>
+                        </div>
+                        ${hasPrice ? '<div class="price">FOB Available</div>' : '<div class="price" style="color:#888">Contact for Price</div>'}
+                        <button class="btn" onclick="openDetail('${p.model}')">Configure & Quote</button>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            area.innerHTML = html;
+        }
 
-function doSearch() {
-  const flow = document.getElementById('search-flow').value;
-  const head = document.getElementById('search-head').value;
-  if (!flow && !head && !currentSeries) {
-    alert(__('alert_search'));
-    return;
-  }
+        function doSearch() {
+            loadProducts();
+        }
 
-  let url = '/api/products?';
-  if (EXPORT_MODE) url += 'mode=export&';
-  if (currentSeries) url += 'series=' + currentSeries + '&';
-  if (flow) url += 'flow=' + flow + '&';
-  if (head) url += 'head=' + head;
+        async function openDetail(model) {
+            document.getElementById('detailModal').style.display = 'block';
+            document.getElementById('detailBody').innerHTML = '<div class="loading">Loading...</div>';
+            
+            const res = await fetch('/api/product/' + encodeURIComponent(model));
+            const data = await res.json();
+            
+            if (data.error) {
+                document.getElementById('detailBody').innerHTML = '<div class="loading">Error: ' + data.error + '</div>';
+                return;
+            }
+            
+            renderDetail(data);
+        }
 
-  fetch(url).then(r => r.json()).then(data => {
-    currentResults = data;
-    renderResults(data);
-  });
-}
+        function renderDetail(data) {
+            const p = data.product;
+            const price = data.price;
+            const coupling = data.coupling || {};
+            const acc = data.acc || {};
+            
+            let html = `
+                <div class="detail-header">
+                    <h2>${p.model}</h2>
+                    <div>
+                        <a href="/curves/${data.curve}" target="_blank" class="btn btn-secondary" style="text-decoration:none">View Curve</a>
+                    </div>
+                </div>
+                <div class="specs">
+                    <span>Flow: ${p.flow} m³/h</span>
+                    <span>Head: ${p.head} m</span>
+                    <span>Power: ${p.power} kW</span>
+                    <span>Voltage: ${p.voltage || '380V'}</span>
+                    ${data.weight ? '<span>Weight: ' + data.weight + ' kg</span>' : ''}
+                </div>
+                
+                <h3 style="margin-top:20px;margin-bottom:15px">Configuration</h3>
+                <div class="config-grid">
+            `;
+            
+            // Impeller
+            if (price.impeller_304 || price.impeller_ductile) {
+                html += `
+                    <div class="config-item">
+                        <label>Impeller Material</label>
+                        <select id="cfgImpeller" onchange="calcPrice('${p.model}')">
+                            <option value="std">Standard (+¥0)</option>
+                            ${price.impeller_304 ? '<option value="304">SS304 (+¥' + price.impeller_304 + ')</option>' : ''}
+                            ${price.impeller_ductile ? '<option value="ductile">Ductile Iron (+¥' + price.impeller_ductile + ')</option>' : ''}
+                        </select>
+                    </div>
+                `;
+            }
+            
+            // Body
+            if (price.body_ductile) {
+                html += `
+                    <div class="config-item">
+                        <label>Pump Body</label>
+                        <select id="cfgBody" onchange="calcPrice('${p.model}')">
+                            <option value="std">Standard (+¥0)</option>
+                            <option value="ductile">Ductile Iron (+¥${price.body_ductile})</option>
+                        </select>
+                    </div>
+                `;
+            }
+            
+            // Bearing
+            if (price.bearing_nsk || price.bearing_skf) {
+                html += `
+                    <div class="config-item">
+                        <label>Bearing</label>
+                        <select id="cfgBearing" onchange="calcPrice('${p.model}')">
+                            <option value="std">Standard (+¥0)</option>
+                            ${price.bearing_nsk ? '<option value="nsk">NSK (+¥' + price.bearing_nsk + ')</option>' : ''}
+                            ${price.bearing_skf ? '<option value="skf">SKF (+¥' + price.bearing_skf + ')</option>' : ''}
+                        </select>
+                    </div>
+                `;
+            }
+            
+            // Mech seal
+            if (price.mech_bgm) {
+                html += `
+                    <div class="config-item">
+                        <label>Mechanical Seal</label>
+                        <select id="cfgMech" onchange="calcPrice('${p.model}')">
+                            <option value="std">Standard (+¥0)</option>
+                            <option value="bgm">Burgmann (+¥${price.mech_bgm})</option>
+                        </select>
+                    </div>
+                `;
+            }
+            
+            // Cable
+            html += `
+                <div class="config-item">
+                    <label>Cable</label>
+                    <select id="cfgCable" onchange="calcPrice('${p.model}')">
+                        <option value="9m">9m Standard (+¥0)</option>
+                        ${price.cable_star_delta ? '<option value="star_delta">Star-Delta (+¥' + price.cable_star_delta + ')</option>' : ''}
+                    </select>
+                </div>
+            `;
+            
+            // Sensors
+            html += `
+                <div class="config-item">
+                    <label>Sensors</label>
+                    <div style="margin-top:8px">
+                        <label><input type="checkbox" id="cfgVib" onchange="calcPrice('${p.model}')"> Vibration (+¥2,200)</label><br>
+                        <label><input type="checkbox" id="cfgPt100" onchange="calcPrice('${p.model}')"> PT100 Temp (+¥350)</label><br>
+                        <label><input type="checkbox" id="cfgProt" onchange="calcPrice('${p.model}')"> Protector (+¥350)</label>
+                    </div>
+                </div>
+            `;
+            
+            // Frequency
+            html += `
+                <div class="config-item">
+                    <label>Frequency</label>
+                    <select id="cfgFreq" onchange="calcPrice('${p.model}')">
+                        <option value="50Hz">50Hz</option>
+                        <option value="60Hz">60Hz (+10%)</option>
+                    </select>
+                </div>
+            `;
+            
+            // Qty
+            html += `
+                <div class="config-item">
+                    <label>Quantity</label>
+                    <input type="number" id="cfgQty" value="1" min="1" onchange="calcPrice('${p.model}')">
+                </div>
+            `;
+            
+            // Discount
+            html += `
+                <div class="config-item">
+                    <label>Discount Rate</label>
+                    <input type="number" id="cfgDiscount" value="0.55" min="0.1" max="1" step="0.05" onchange="calcPrice('${p.model}')">
+                </div>
+            `;
+            
+            html += '</div>';
+            
+            // Price summary
+            html += `
+                <div class="price-summary">
+                    <h3>Price Summary</h3>
+                    <div class="price-row"><span>Face Price (CNY)</span><span id="priceFace">¥${price.face || 0}</span></div>
+                    <div class="price-row"><span>Factory Price (CNY)</span><span id="priceFactory">¥0</span></div>
+                    <div class="price-row"><span>FOB Price (CNY)</span><span id="priceFobCny">¥0</span></div>
+                    <div class="price-row price-total"><span>FOB Price (USD)</span><span id="priceFobUsd">$0.00</span></div>
+                    <div style="font-size:0.85em;color:#888;margin-top:10px">Exchange Rate: 1 USD = ¥${RATE}</div>
+                </div>
+            `;
+            
+            // Curve
+            if (data.curve) {
+                html += `
+                    <h3 style="margin-top:20px">Performance Curve</h3>
+                    <iframe src="/curves/${data.curve}" class="chart-frame"></iframe>
+                `;
+            }
+            
+            document.getElementById('detailBody').innerHTML = html;
+            calcPrice(p.model);
+        }
 
-function renderResults(products) {
-  const el = document.getElementById('results-content');
-  if (products.length === 0) {
-    el.innerHTML = '<div class="no-result"><span class="emoji">&#128270;</span>' + __('no_result') + '</div>';
-    showPage('results');
-    return;
-  }
+        async function calcPrice(model) {
+            const options = {
+                discount: parseFloat(document.getElementById('cfgDiscount')?.value || 0.55),
+                qty: parseInt(document.getElementById('cfgQty')?.value || 1),
+                freq: document.getElementById('cfgFreq')?.value || '50Hz',
+                impeller: document.getElementById('cfgImpeller')?.value || 'std',
+                body: document.getElementById('cfgBody')?.value || 'std',
+                bearing: document.getElementById('cfgBearing')?.value || 'std',
+                mech: document.getElementById('cfgMech')?.value || 'std',
+                cable: document.getElementById('cfgCable')?.value || '9m',
+                vibration: document.getElementById('cfgVib')?.checked || false,
+                pt100: document.getElementById('cfgPt100')?.checked || false,
+                protector: document.getElementById('cfgProt')?.checked || false
+            };
+            
+            const res = await fetch('/api/calc', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({model, options})
+            });
+            const result = await res.json();
+            
+            if (result.error) return;
+            
+            document.getElementById('priceFace').textContent = '¥' + result.face.toLocaleString();
+            document.getElementById('priceFactory').textContent = '¥' + result.base.toLocaleString();
+            document.getElementById('priceFobCny').textContent = '¥' + result.fob_cny.toLocaleString();
+            document.getElementById('priceFobUsd').textContent = '$' + result.fob_usd.toLocaleString();
+        }
 
-  const flow = document.getElementById('search-flow').value;
-  const head = document.getElementById('search-head').value;
-  const f = parseFloat(flow) || 0;
-  const h = parseFloat(head) || 0;
+        function closeDetail() {
+            document.getElementById('detailModal').style.display = 'none';
+        }
 
-  let bestIdx = 0, bestScore = Infinity;
-  products.forEach((p, i) => {
-    const score = Math.abs(p.flow - f) + Math.abs(p.head - h) * 2;
-    if (score < bestScore) { bestScore = score; bestIdx = i; }
-  });
-
-  el.innerHTML = products.map((p, i) => {
-    const isBest = i === bestIdx && (f > 0 || h > 0);
-    const flowMatch = !f || Math.abs(p.flow - f) / Math.max(p.flow, 0.1) <= 0.15;
-    const headMatch = !h || Math.abs(p.head - h) / Math.max(p.head, 0.1) <= 0.15;
-
-    return `<div class="model-card ${isBest ? 'best' : ''}" onclick="showDetail('${p.model}')">
-      <div class="model-name">${p.model}</div>
-      <div class="specs">
-        ${__('dia')} ${p.dia}mm &middot; ${__('flow')} ${p.flow}m³/h &middot; ${__('head')} ${p.head}m &middot; ${__('power')} ${p.power}kW
-        <br>
-        <span class="tag" style="background:${flowMatch ? '#e8f5e9' : '#ffebee'};color:${flowMatch ? '#2e7d32' : '#c62828'}">${__('flow_tag')}${flowMatch ? '✓' : '△'}</span>
-        <span class="tag" style="background:${headMatch ? '#e8f5e9' : '#ffebee'};color:${headMatch ? '#2e7d32' : '#c62828'}">${__('head_tag')}${headMatch ? '✓' : '△'}</span>
-        <span class="tag" style="background:${SERIES_COLORS[p.series]}22;color:${SERIES_COLORS[p.series]}">${p.series}</span>
-      </div>
-      <div class="price-row">
-        <span class="fob">$${p.fob_50}</span>
-        ${EXPORT_MODE ? '' : `<span class="face">面价 ¥${p.face}</span>`}
-      </div>
-    </div>`;
-  }).join('');
-
-  showPage('results');
-}
-
-function showDetail(model) {
-  fetch('/api/product/' + model + (EXPORT_MODE ? '?mode=export' : '')).then(r => r.json()).then(data => {
-    const p = data.product;
-    const price = data.price;
-    const coupling = data.coupling;
-
-    let breakdownHtml = '';
-    let facePrice = price.face || p.face;
-    let impellerCost = price.impeller_std || 0;
-    let cableCost = price.cable_9m || 0;
-    let mechCost = price.mech_std || 0;
-    let bearingCost = price.bearing_std || 0;
-    let totalParts = impellerCost + cableCost + mechCost + bearingCost;
-
-    if (Object.keys(price).length > 0) {
-      breakdownHtml = Object.entries(price)
-        .filter(([k]) => k !== 'face')
-        .map(([k, v]) => `<div class="acc-row">
-          <span class="label">${k.replace(/_/g, ' ')}</span>
-          <span>¥${v}</span>
-        </div>`).join('');
-    }
-
-    let couplingHtml = '';
-    for (const [type, sizes] of Object.entries(coupling)) {
-      const typeName = COUPLING_TYPE[type] || type;
-      couplingHtml += `<div class="acc-row">
-        <span class="label">${typeName}</span>
-        <select onchange="updateCoupling('${type}', this.value)">
-          <option value="">${__('no_select')}</option>
-          ${Object.entries(sizes).map(([size, cost]) =>
-            `<option value="${cost}">DN${size} (${CUR}${cost})</option>`
-          ).join('')}
-        </select>
-        <span class="unit-price" id="coupling-${type}"></span>
-      </div>`;
-    }
-
-    const el = document.getElementById('detail-content');
-
-    let curveHtml = '';
-    if (data.curve) {
-      curveHtml = `<div class="acc-section">
-        <h4>${__('perf_curve')}</h4>
-        <div style="text-align:center">
-          <embed src="/static/curves/${data.curve}" type="application/pdf" width="100%" height="400px" style="border-radius:8px;border:1px solid #eee">
-          <div style="margin-top:8px">
-            <a href="/static/curves/${data.curve}" target="_blank" style="display:inline-block;margin:0 4px;padding:6px 16px;background:#1976d2;color:#fff;border-radius:4px;text-decoration:none;font-size:13px">${EXPORT_MODE ? 'Open in New Window' : '新窗口打开'}</a>
-            <a href="/static/curves/${data.curve}" target="_blank" download="${data.curve}" style="display:inline-block;margin:0 4px;padding:6px 16px;background:#43a047;color:#fff;border-radius:4px;text-decoration:none;font-size:13px">${EXPORT_MODE ? 'Download PDF' : '下载 PDF'}</a>
-          </div>
-        </div>
-      </div>`;
-    } else if (p.series === 'WQA') {
-      curveHtml = `<div class="acc-section" style="text-align:center;color:#999;font-size:13px">
-        <div>${__('no_curve')}</div>
-      </div>`;
-    }
-
-    el.innerHTML = `
-      <div class="detail-card">
-        <h2>${p.model}</h2>
-        <div class="subtitle">${SERIES_NAMES[p.series]} ${__('series')} &middot; ${__('dia')} ${p.dia}mm</div>
-
-        <table class="detail-table">
-          <tr><td>${__('flow')}</td><td>${p.flow} m³/h</td></tr>
-          <tr><td>${__('head')}</td><td>${p.head} m</td></tr>
-          <tr><td>${__('power')}</td><td>${p.power} kW</td></tr>
-          <tr><td>${__('speed')}</td><td>${data.speed || 1450} RPM</td></tr>
-          ${EXPORT_MODE ? '' : `<tr><td>${__('face_price')}</td><td>¥${facePrice}</td></tr>`}
-          <tr><td>FOB 50Hz</td><td>$${p.fob_50}</td></tr>
-          <tr><td>FOB 60Hz</td><td>$${p.fob_60}</td></tr>
-        </table>
-
-        ${curveHtml}
-
-        <div class="acc-section">
-          <h4>${__('options')}</h4>
-          <div class="acc-row">
-            <span class="label">${__('cable_length')}</span>
-            <input type="number" value="9" min="0" max="100" onchange="updateCable(this.value)">
-            <span class="unit-price">${__('meters_with')}${CUR}${price.cable_9m || 0})</span>
-          </div>
-          <div class="acc-row">
-            <span class="label">${__('impeller')}</span>
-            <select onchange="updateImpeller(this.value)">
-              <option value="std">${__('standard')} (${CUR}${price.impeller_std || 0})</option>
-              ${price.impeller_304 ? `<option value="304">304 SS (${CUR}${price.impeller_304})</option>` : ''}
-            </select>
-          </div>
-          <div class="acc-row">
-            <span class="label">${__('bearing_brand')}</span>
-            <select onchange="updateBearing(this.value)">
-              <option value="std">${__('standard')} (${CUR}${price.bearing_std || 0})</option>
-              ${price.bearing_nsk ? `<option value="nsk">NSK (${CUR}${price.bearing_nsk})</option>` : ''}
-              ${price.bearing_skf ? `<option value="skf">SKF (${CUR}${price.bearing_skf})</option>` : ''}
-            </select>
-          </div>
-          ${couplingHtml}
-        </div>
-      </div>`;
-
-    window._priceData = price;
-    window._facePrice = facePrice;
-    showPage('detail');
-  });
-}
-
-let _selectedCoupling = {};
-function updateCoupling(type, cost) {
-  _selectedCoupling[type] = parseInt(cost) || 0;
-  recalcTotal();
-}
-function updateCable(meters) {
-  const base = (window._priceData && window._priceData.cable_9m) || 0;
-  const perMeter = base / 9;
-  const extra = parseInt(meters || 0) * perMeter;
-  recalcTotal();
-}
-function updateImpeller(val) {
-  recalcTotal();
-}
-function updateBearing(val) {
-  recalcTotal();
-}
-function recalcTotal() {
-  const price = window._priceData || {};
-  const face = window._facePrice || 0;
-  const impeller = parseInt(document.querySelector('[onchange*="updateImpeller"]')?.value === '304' ? (price.impeller_304 || 0) : (price.impeller_std || 0)) || 0;
-  const bearing = parseInt(document.querySelector('[onchange*="updateBearing"]')?.value === 'nsk' ? (price.bearing_nsk || 0) : document.querySelector('[onchange*="updateBearing"]')?.value === 'skf' ? (price.bearing_skf || 0) : (price.bearing_std || 0)) || 0;
-  const mech = parseInt(price.mech_std || 0);
-  const cable = parseInt(price.cable_9m || 0);
-  const coupling = Object.values(_selectedCoupling).reduce((a, b) => a + b, 0);
-  const parts = impeller + bearing + mech + cable + coupling;
-  document.getElementById('quote-total').textContent = '¥' + (face + parts);
-  document.getElementById('parts-total').textContent = '¥' + parts;
-}
-</script>
+        // 初始化
+        loadProducts();
+        
+        // Enter 键搜索
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') doSearch();
+        });
+    </script>
 </body>
 </html>
