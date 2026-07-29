@@ -330,6 +330,7 @@ def index():
 def api_products():
     export = EXPORT_MODE or request.args.get('mode') == 'export'
     series = request.args.get('series', '')
+    dn = request.args.get('dn', '').strip()
     q = request.args.get('q', '').strip()
     flow = request.args.get('flow', '').strip()
     head = request.args.get('head', '').strip()
@@ -337,6 +338,9 @@ def api_products():
     results = DATA
     if series:
         results = [p for p in results if p.get('series', '').upper() == series.upper() or p.get('model', '').upper().startswith(series.upper())]
+    if dn:
+        dn_val = dn.strip()
+        results = [p for p in results if str(p.get('dia', '') or '').strip() == dn_val]
     if q:
         q_lower = q.lower()
         results = [p for p in results if q_lower in p.get('model', '').lower()
