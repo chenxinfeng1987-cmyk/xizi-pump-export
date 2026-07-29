@@ -51,12 +51,10 @@ SERIES_INFO = {
 
 @app.route('/')
 def index():
-    mode = request.args.get('mode', '')
-    return render_template('index.html', export_mode=(mode == 'export' or os.environ.get('RAILWAY') == '1'))
+    return render_template('index.html', export_mode=True)
 
 @app.route('/api/series')
 def get_series():
-    export = request.args.get('mode') == 'export'
     series_counts = {}
     for p in PRODUCTS:
         s = p['series']
@@ -65,9 +63,8 @@ def get_series():
     for k, v in SERIES_INFO.items():
         item = dict(v)
         item['count'] = series_counts.get(k, 0)
-        if export:
-            item['name'] = v.get('name_en', v['name'])
-            item['desc'] = v.get('desc_en', v['desc'])
+        item['name'] = v.get('name_en', v['name'])
+        item['desc'] = v.get('desc_en', v['desc'])
         result[k] = item
     return jsonify(result)
 
@@ -94,10 +91,7 @@ def get_products():
             pass
 
     results.sort(key=lambda p: abs(p['flow'] - float(flow or 0)) + abs(p['head'] - float(head or 0)) * 0.5)
-    export_mode = request.args.get('mode') == 'export'
-    out = results[:50]
-    if export_mode:
-        out = [{k: v for k, v in p.items() if k not in ('face', 'fob_both')} for p in out]
+    out = [{k: v for k, v in p.items() if k not in ('face', 'fob_both')} for p in results[:50]]
     return jsonify(out)
 
 @app.route('/api/product/<model>')
@@ -108,24 +102,19 @@ def get_product(model):
     price = PRICES.get(model, {})
     speed = SPEEDS.get(model, 1450)
     curve = find_curve(model)
-    export_mode = request.args.get('mode') == 'export'
     coupling = copy.deepcopy(COUPLING)
     result = {
-        'product': product,
-        'price': price,
+        'product': {k: v for k, v in product.items() if k not in ('face', 'fob_both')},
+        'price': {k: round(v / EXCHANGE_RATE, 2) if isinstance(v, (int, float)) else v for k, v in price.items()},
         'speed': speed,
         'curve': curve,
         'coupling': coupling,
-        'export_mode': export_mode,
+        'export_mode': True,
         'exchange_rate': EXCHANGE_RATE,
     }
-    if export_mode:
-        result['product'] = {k: v for k, v in product.items() if k not in ('face', 'fob_both')}
-        rate = EXCHANGE_RATE
-        result['price'] = {k: round(v / rate, 2) if isinstance(v, (int, float)) else v for k, v in price.items()}
-        for ctype in coupling:
-            for size in coupling[ctype]:
-                coupling[ctype][size] = round(coupling[ctype][size] / rate, 2)
+    for ctype in coupling:
+        for size in coupling[ctype]:
+            coupling[ctype][size] = round(coupling[ctype][size] / EXCHANGE_RATE, 2)
     return jsonify(result)
 
 if __name__ == '__main__':
