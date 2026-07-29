@@ -134,18 +134,33 @@
             renderProducts(data.products);
         }
 
-        function renderProducts(products) {
+        let currentPage = 1;
+        const PAGE_SIZE = 9;
+        function renderProducts(products, page) {
+            page = page || 1;
+            currentPage = page;
             const area = document.getElementById('resultsArea');
             if (!products.length) { area.innerHTML = '<div class="loading">No products found</div>'; return; }
+            const totalPages = Math.ceil(products.length / PAGE_SIZE);
+            const start = (page - 1) * PAGE_SIZE;
+            const pageItems = products.slice(start, start + PAGE_SIZE);
             let html = '<div class="results">';
-            for (const p of products) {
+            for (const p of pageItems) {
                 html += `<div class="card"><h3>${p.model}</h3>
                     <div class="specs"><span>DN: ${p.dia || '-'}</span><span>Flow: ${p.flow} m³/h</span><span>Head: ${p.head} m</span><span>Power: ${p.power} kW</span></div>
                     ${p.has_price ? '<div class="price">FOB Available</div>' : '<div class="price" style="color:#888">Contact</div>'}
                     <button class="btn" onclick="openDetail('${p.model}')">Configure & Quote</button></div>`;
             }
             html += '</div>';
+            if (totalPages > 1) {
+                html += '<div class="pagination" style="text-align:center;margin-top:20px">';
+                if (page > 1) html += `<button class="btn" style="width:auto;display:inline-block;margin:0 5px" onclick="renderProducts(allProducts,${page-1})">Prev</button>`;
+                html += `<span style="margin:0 10px;color:#666">Page ${page} / ${totalPages} (${products.length} products)</span>`;
+                if (page < totalPages) html += `<button class="btn" style="width:auto;display:inline-block;margin:0 5px" onclick="renderProducts(allProducts,${page+1})">Next</button>`;
+                html += '</div>';
+            }
             area.innerHTML = html;
+            area.scrollIntoView({behavior:'smooth'});
         }
 
         function doSearch() { loadProducts(); }
