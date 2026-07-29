@@ -286,7 +286,7 @@
             html += '</div></div></div>';
 
             // === Elbows ===
-            html += `<div class="config-section"><div class="section-header"><h4>Elbows & Double-Flange</h4></div><div class="config-grid">`;
+            html += `<div class="config-section"><div class="section-header"><h4>Elbows & Double-Flange</h4><label class="toggle-label"><input type="checkbox" id="cfgElbowEn" onchange="toggleSection('elbowContent',this.checked)"> Enable</label></div><div id="elbowContent" class="section-content" style="display:none"><div class="config-grid">`;
             html += `<div class="config-item"><label><input type="checkbox" id="cfgElEn" onchange="calcPrice('${p.model}')"> Elbow</label>
                 <select id="cfgElMat" onchange="calcPrice('${p.model}')" style="margin-top:5px">
                     <option value="HT200">HT200</option><option value="SS304">304</option><option value="SS316">316</option>
@@ -299,7 +299,7 @@
                     <option value="SS316L">316L</option><option value="SS2205">2205</option><option value="SS2507">2507</option>
                 </select>
                 <input type="number" id="cfgDfQty" value="1" min="1" max="50" onchange="calcPrice('${p.model}')" style="width:60px;margin-top:5px"></div>`;
-            html += '</div></div>';
+            html += '</div></div></div>';
 
             // Price summary
             html += `<div class="price-summary"><h3>Price Summary</h3>
