@@ -213,7 +213,7 @@ def index():
     export = EXPORT_MODE or request.args.get('mode') == 'export'
     series_list = []
     for key, info in SERIES_INFO.items():
-        count = sum(1 for p in DATA if p.get('model', '').upper().startswith(key))
+        count = sum(1 for p in DATA if p.get('series', '').upper() == key.upper())
         if count > 0:
             series_list.append({
                 'key': key,
