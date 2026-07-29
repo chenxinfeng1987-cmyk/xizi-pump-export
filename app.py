@@ -48,12 +48,15 @@ SERIES_INFO = {
 curve_mapping = load_json('data/curve_mapping.json')
 
 def find_curve(model):
-    """模糊匹配曲线文件"""
+    """用 curve_mapping.json 匹配曲线"""
+    # 先精确匹配
+    if model in curve_mapping:
+        return curve_mapping[model]
+    # 模糊匹配（去掉 QG 后缀）
     base = model.upper().replace('QG', '')
-    pdf_files = os.listdir(os.path.join(BASE_DIR, 'data', 'curves')) if os.path.exists(os.path.join(BASE_DIR, 'data', 'curves')) else []
-    for f in pdf_files:
-        if f.upper().replace('.PDF', '').replace('QG', '') == base:
-            return f
+    for k, v in curve_mapping.items():
+        if k.upper().replace('QG', '') == base:
+            return v
     return None
 
 # 英文界面翻译

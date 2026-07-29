@@ -61,7 +61,7 @@
             <div class="search-row">
                 <div class="search-group">
                     <label>Series</label>
-                    <select id="selSeries">
+                    <select id="selSeries" onchange="currentSeries=this.value;loadProducts()">
                         <option value="">All Series</option>
                         {% for s in series_list %}
                         <option value="{{ s.key }}">{{ s.name }} ({{ s.count }})</option>
