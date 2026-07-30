@@ -213,9 +213,7 @@
             const price = data.price || {};
             const dn = parseInt(p.dia) || 100;
             const coupling = data.coupling || {};
-            let html = `<div class="detail-header"><h2>${p.model}</h2>
-                ${data.curve ? '<a href="/curves/' + data.curve + '" target="_blank" class="btn btn-secondary" style="text-decoration:none">View Curve</a>' : ''}
-            </div>
+            let html = `<div class="detail-header"><h2>${p.model}</h2></div>
             <div class="specs"><span>DN: ${p.dia || '-'}</span><span>Flow: ${p.flow} m³/h</span><span>Head: ${p.head} m</span><span>Power: ${p.power} kW</span><span>Voltage: ${p.voltage || '380V'}</span>${data.weight ? '<span>Weight: '+data.weight+' kg</span>' : ''}</div>`;
 
             // === Pricing Conditions ===
@@ -352,15 +350,13 @@
             </div>`;
 
             if (data.curve) {
-                html += `<h3 style="margin-top:20px">Performance Curve</h3><iframe src="/curves/${data.curve}" class="chart-frame"></iframe>`;
+                html += `<h3 style="margin-top:20px">Performance Curve</h3>
+                    <div style="margin-top:10px;margin-bottom:5px"><a href="/curves/${data.curve}" target="_blank" class="btn btn-secondary" style="text-decoration:none;display:inline-block">View Performance Curve</a></div>
+                    <iframe src="/curves/${data.curve}" class="chart-frame"></iframe>`;
             }
 
             if (data.dimension) {
                 html += `<h3 style="margin-top:20px">Dimension Drawing</h3>
-                    <div style="display:flex;align-items:center;gap:15px;margin-top:10px">
-                        <a href="/dimensions/${data.dimension}" target="_blank" class="btn btn-secondary" style="text-decoration:none;display:inline-block">View Dimension Drawing</a>
-                        <a href="/dimensions/${data.dimension}" download="${p.model}_dimension.pdf" class="btn btn-secondary" style="text-decoration:none;display:inline-block;background:#388e3c">Download PDF</a>
-                    </div>
                     <iframe src="/dimensions/${data.dimension}" class="chart-frame" style="height:500px"></iframe>`;
             }
 
