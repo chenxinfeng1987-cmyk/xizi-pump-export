@@ -48,6 +48,9 @@ SERIES_INFO = {
 # 加载曲线映射
 curve_mapping = load_json('data/curve_mapping.json')
 
+# 加载尺寸图映射
+dim_mapping = load_json('data/dim_mapping.json')
+
 SERIES_CURVE_MAP = {
     'WQN': 'WQA',
     'WQB': 'WQA',
@@ -184,7 +187,17 @@ def calc_price(model, options):
     """详细报价计算"""
     price_info = PRICE_DATA.get('PRICE_DATA', PRICE_DATA).get(model, {})
     if not price_info:
-        return None
+    return None
+
+def find_dimension(model):
+    """用 dim_mapping.json 匹配尺寸图"""
+    if model in dim_mapping:
+        return dim_mapping[model]
+    # 去掉空格后缀
+    clean = model.strip()
+    if clean in dim_mapping:
+        return dim_mapping[clean]
+    return None
     
     dn = extract_dn(model)
     face = price_info.get('face', 0)
@@ -417,6 +430,7 @@ def api_product_detail(model):
     speed = SPEED_DATA.get(model, SPEED_DATA.get('SPEED_DATA', {}).get(model, 2950))
     weight = PUMP_WEIGHT.get(model, PUMP_WEIGHT.get('PUMP_WEIGHT', {}).get(model))
     curve = find_curve(model)
+    dimension = find_dimension(model)
     
     return jsonify({
         'product': product,
@@ -424,6 +438,7 @@ def api_product_detail(model):
         'speed': speed,
         'weight': weight,
         'curve': curve,
+        'dimension': dimension,
         'coupling': COUPLING,
         'sensors': SENSOR_PRICES,
         'acc': ACC,
@@ -460,6 +475,10 @@ def api_calc():
 @app.route('/curves/<path:filename>')
 def serve_curve(filename):
     return send_from_directory(os.path.join(BASE_DIR, 'data', 'curves'), filename)
+
+@app.route('/dimensions/<path:filename>')
+def serve_dimension(filename):
+    return send_from_directory(os.path.join(BASE_DIR, 'static', 'dimensions'), filename)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5006, debug=True)

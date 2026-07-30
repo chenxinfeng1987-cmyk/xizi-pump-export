@@ -355,6 +355,15 @@
                 html += `<h3 style="margin-top:20px">Performance Curve</h3><iframe src="/curves/${data.curve}" class="chart-frame"></iframe>`;
             }
 
+            if (data.dimension) {
+                html += `<h3 style="margin-top:20px">Dimension Drawing</h3>
+                    <div style="display:flex;align-items:center;gap:15px;margin-top:10px">
+                        <a href="/dimensions/${data.dimension}" target="_blank" class="btn btn-secondary" style="text-decoration:none;display:inline-block">View Dimension Drawing</a>
+                        <a href="/dimensions/${data.dimension}" download="${p.model}_dimension.pdf" class="btn btn-secondary" style="text-decoration:none;display:inline-block;background:#388e3c">Download PDF</a>
+                    </div>
+                    <iframe src="/dimensions/${data.dimension}" class="chart-frame" style="height:500px"></iframe>`;
+            }
+
             document.getElementById('detailBody').innerHTML = html;
             calcPrice(p.model);
         }
