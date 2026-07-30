@@ -191,16 +191,31 @@ def calc_price(model, options):
 
 def find_dimension(model):
     """用 dim_mapping.json 匹配尺寸图，WQN/WQB/WQAF 共用 WQA 尺寸图"""
-    if model in dim_mapping:
-        return dim_mapping[model]
     clean = model.strip()
     if clean in dim_mapping:
         return dim_mapping[clean]
+    # 精确匹配（去QG）
+    no_qg = clean.upper().replace('QG', '')
+    for k in dim_mapping:
+        if k.upper().replace('QG', '') == no_qg:
+            return dim_mapping[k]
     # 系列映射（WQN→WQA 等）
+    mapped_name = clean.upper()
     for src, dst in SERIES_CURVE_MAP.items():
-        mapped = model.upper().replace(src, dst).replace('QG', '')
+        mapped_name = mapped_name.replace(src, dst)
+    mapped_name = mapped_name.replace('QG', '')
+    # 先尝试精确
+    for k in dim_mapping:
+        if k.upper().replace('QG', '') == mapped_name:
+            return dim_mapping[k]
+    # 最后模糊匹配：型号核心部分一致
+    import re
+    core_match = re.match(r'(\d+W[A-Z]+\d+-\d+-\d+)', mapped_name)
+    if core_match:
+        core = core_match.group(1)
         for k in dim_mapping:
-            if k.upper().replace('QG', '') == mapped:
+            k_core = re.match(r'(\d+W[A-Z]+\d+-\d+-\d+)', k.upper().replace('QG', ''))
+            if k_core and k_core.group(1) == core:
                 return dim_mapping[k]
     return None
     
