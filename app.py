@@ -187,7 +187,7 @@ def calc_price(model, options):
     """详细报价计算"""
     price_info = PRICE_DATA.get('PRICE_DATA', PRICE_DATA).get(model, {})
     if not price_info:
-    return None
+        return None
 
 def find_dimension(model):
     """用 dim_mapping.json 匹配尺寸图，WQN/WQB/WQAF 共用 WQA 尺寸图"""
