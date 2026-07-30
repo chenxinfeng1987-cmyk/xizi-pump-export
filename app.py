@@ -190,13 +190,18 @@ def calc_price(model, options):
     return None
 
 def find_dimension(model):
-    """用 dim_mapping.json 匹配尺寸图"""
+    """用 dim_mapping.json 匹配尺寸图，WQN/WQB/WQAF 共用 WQA 尺寸图"""
     if model in dim_mapping:
         return dim_mapping[model]
-    # 去掉空格后缀
     clean = model.strip()
     if clean in dim_mapping:
         return dim_mapping[clean]
+    # 系列映射（WQN→WQA 等）
+    for src, dst in SERIES_CURVE_MAP.items():
+        mapped = model.upper().replace(src, dst).replace('QG', '')
+        for k in dim_mapping:
+            if k.upper().replace('QG', '') == mapped:
+                return dim_mapping[k]
     return None
     
     dn = extract_dn(model)
