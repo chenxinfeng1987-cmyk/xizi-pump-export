@@ -82,22 +82,22 @@ def find_curve_data(model):
     """模糊匹配curve_data，产品型号可能不带-4P/-2P后缀"""
     if model in curve_data:
         return curve_data[model]
-    # 去掉-数字P后缀再匹配
+    # 去掉-数字P后缀（可能带尾部横杠）再匹配
     import re
-    base = re.sub(r'-\d+P$', '', model)
+    base = re.sub(r'-\d+P-?$', '', model)
     for k, v in curve_data.items():
-        if re.sub(r'-\d+P$', '', k) == base:
+        if re.sub(r'-\d+P-?$', '', k) == base:
             return v
     # 去掉QG后缀
     no_qg = base.upper().replace('QG', '')
     for k, v in curve_data.items():
-        if re.sub(r'-\d+P$', '', k).upper().replace('QG', '') == no_qg:
+        if re.sub(r'-\d+P-?$', '', k).upper().replace('QG', '') == no_qg:
             return v
     # 系列映射
     for src, dst in SERIES_CURVE_MAP.items():
         mapped = base.upper().replace(src, dst).replace('QG', '')
         for k, v in curve_data.items():
-            if re.sub(r'-\d+P$', '', k).upper().replace('QG', '') == mapped:
+            if re.sub(r'-\d+P-?$', '', k).upper().replace('QG', '') == mapped:
                 return v
     return None
 
