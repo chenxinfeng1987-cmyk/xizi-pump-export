@@ -349,7 +349,20 @@
                 <div class="price-row price-total"><span>FOB Price (USD)</span><span id="priceFobUsd">$0.00</span></div>
             </div>`;
 
-            if (data.curve) {
+            if (data.curve_data && data.curve_data.q) {
+                html += `<h3 style="margin-top:20px">Performance Curve</h3>
+                    <div style="margin-top:10px;margin-bottom:5px"><a href="/curves/${data.curve}" target="_blank" class="btn btn-secondary" style="text-decoration:none;display:inline-block">View PDF</a></div>
+                    <div class="curve-container" style="position:relative;background:#fff;border:1px solid #ddd;border-radius:6px;padding:10px;margin-top:8px">
+                        <canvas id="perfCurve" width="560" height="340" style="width:100%;max-width:560px;cursor:crosshair"></canvas>
+                        <div id="curveTooltip" style="display:none;position:absolute;background:rgba(0,0,0,0.85);color:#fff;padding:6px 10px;border-radius:4px;font-size:12px;pointer-events:none;white-space:nowrap;z-index:10"></div>
+                        <div style="display:flex;gap:16px;margin-top:6px;font-size:12px;color:#666;flex-wrap:wrap">
+                            <span><span style="color:#e74c3c">■</span> Head (H)</span>
+                            <span><span style="color:#2ecc71">■</span> Efficiency (η)</span>
+                            <span><span style="color:#3498db">■</span> Power (P)</span>
+                        </div>
+                    </div>`;
+                setTimeout(() => drawPerfCurve(data.curve_data), 100);
+            } else if (data.curve) {
                 html += `<h3 style="margin-top:20px">Performance Curve</h3>
                     <div style="margin-top:10px;margin-bottom:5px"><a href="/curves/${data.curve}" target="_blank" class="btn btn-secondary" style="text-decoration:none;display:inline-block">View Performance Curve</a></div>
                     <iframe src="/curves/${data.curve}" class="chart-frame"></iframe>`;
@@ -363,6 +376,165 @@
             document.getElementById('detailBody').innerHTML = html;
             calcPrice(p.model);
         }
+
+        function drawPerfCurve(cd) {
+            const canvas = document.getElementById('perfCurve');
+            if (!canvas || !cd.q || cd.q.length < 2) return;
+            const ctx = canvas.getContext('2d');
+            const W = canvas.width, H = canvas.height;
+            const pad = {l:55, r:55, t:20, b:40};
+            const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+
+            const qMin = 0, qMax = Math.max(...cd.q) * 1.05;
+            const allY = [...(cd.h||[]), ...(cd.eff||[]), ...(cd.power||[])];
+            const yMin = 0, yMax = Math.max(...allY) * 1.1;
+
+            const toX = q => pad.l + (q - qMin) / (qMax - qMin) * cw;
+            const toY = v => pad.t + ch - (v - yMin) / (yMax - yMin) * ch;
+
+            ctx.clearRect(0, 0, W, H);
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, W, H);
+
+            ctx.strokeStyle = '#eee';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i <= 5; i++) {
+                const y = pad.t + ch * i / 5;
+                ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+                ctx.fillStyle = '#999';
+                ctx.font = '11px sans-serif';
+                ctx.textAlign = 'right';
+                ctx.fillText((yMax - (yMax - yMin) * i / 5).toFixed(0), pad.l - 5, y + 4);
+            }
+            for (let i = 0; i <= 5; i++) {
+                const x = pad.l + cw * i / 5;
+                ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ch); ctx.stroke();
+                ctx.fillStyle = '#999';
+                ctx.textAlign = 'center';
+                ctx.fillText((qMin + (qMax - qMin) * i / 5).toFixed(0), x, H - pad.b + 16);
+            }
+
+            ctx.fillStyle = '#333';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Q (m\u00B3/h)', pad.l + cw / 2, H - 4);
+            ctx.save();
+            ctx.translate(14, pad.t + ch / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('H (m) / \u03B7 (%) / P (kW)', 0, 0);
+            ctx.restore();
+
+            function drawLine(pts, color) {
+                if (!pts || pts.length < 2) return;
+                ctx.beginPath();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.lineJoin = 'round';
+                pts.forEach((v, i) => {
+                    const x = toX(cd.q[i]);
+                    const y = toY(v);
+                    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+            }
+            drawLine(cd.h, '#e74c3c');
+            drawLine(cd.eff, '#2ecc71');
+            drawLine(cd.power, '#3498db');
+
+            canvas._cd = cd;
+            canvas._toX = toX;
+            canvas._toY = toY;
+            canvas._qMin = qMin;
+            canvas._qMax = qMax;
+            canvas._yMin = yMin;
+            canvas._yMax = yMax;
+            canvas._pad = pad;
+            canvas._cw = cw;
+            canvas._ch = ch;
+            canvas._W = W;
+            canvas._H = H;
+        }
+
+        (function() {
+            const canvas = document.getElementById('perfCurve');
+            if (!canvas) return;
+            const tooltip = document.getElementById('curveTooltip');
+            const container = canvas.parentElement;
+
+            function getIndex(q) {
+                const cd = canvas._cd;
+                if (!cd || !cd.q) return -1;
+                let best = 0, bestDist = Infinity;
+                cd.q.forEach((v, i) => {
+                    const d = Math.abs(v - q);
+                    if (d < bestDist) { bestDist = d; best = i; }
+                });
+                return best;
+            }
+
+            canvas.addEventListener('mousemove', function(e) {
+                const cd = canvas._cd;
+                if (!cd || !cd.q) return;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const px = (e.clientX - rect.left) * scaleX;
+                const pad = canvas._pad;
+                const cw = canvas._cw;
+                const qMin = canvas._qMin, qMax = canvas._qMax;
+                const q = qMin + (px - pad.l) / cw * (qMax - qMin);
+                if (q < qMin || q > qMax) { tooltip.style.display = 'none'; return; }
+                const idx = getIndex(q);
+                const x = canvas._toX(cd.q[idx]);
+
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas._W, canvas._H);
+                drawPerfCurve(cd);
+
+                ctx.setLineDash([4, 3]);
+                ctx.strokeStyle = '#aaa';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x, pad.t);
+                ctx.lineTo(x, pad.t + canvas._ch);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                const markers = [
+                    {val: cd.h ? cd.h[idx] : null, color: '#e74c3c'},
+                    {val: cd.eff ? cd.eff[idx] : null, color: '#2ecc71'},
+                    {val: cd.power ? cd.power[idx] : null, color: '#3498db'},
+                ];
+                markers.forEach(m => {
+                    if (m.val == null) return;
+                    const y = canvas._toY(m.val);
+                    ctx.beginPath();
+                    ctx.arc(x, y, 5, 0, Math.PI * 2);
+                    ctx.fillStyle = m.color;
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                });
+
+                let lines = [`Q = ${cd.q[idx].toFixed(1)} m\u00B3/h`];
+                if (cd.h) lines.push(`H = ${cd.h[idx].toFixed(1)} m`);
+                if (cd.eff) lines.push(`\u03B7 = ${cd.eff[idx].toFixed(1)} %`);
+                if (cd.power) lines.push(`P = ${cd.power[idx].toFixed(1)} kW`);
+                tooltip.innerHTML = lines.join('<br>');
+                tooltip.style.display = 'block';
+                let tx = e.clientX - container.getBoundingClientRect().left + 12;
+                let ty = e.clientY - container.getBoundingClientRect().top - 10;
+                if (tx + 160 > container.offsetWidth) tx -= 180;
+                tooltip.style.left = tx + 'px';
+                tooltip.style.top = ty + 'px';
+            });
+
+            canvas.addEventListener('mouseleave', function() {
+                tooltip.style.display = 'none';
+                const cd = canvas._cd;
+                if (cd) drawPerfCurve(cd);
+            });
+        })();
 
         async function calcPrice(model) {
             const opts = {

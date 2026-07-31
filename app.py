@@ -47,6 +47,7 @@ SERIES_INFO = {
 
 # 加载曲线映射
 curve_mapping = load_json('data/curve_mapping.json')
+curve_data = load_json('data/curve_data.json')
 
 # 加载尺寸图映射
 dim_mapping = load_json('data/dim_mapping.json')
@@ -453,6 +454,7 @@ def api_product_detail(model):
         'speed': speed,
         'weight': weight,
         'curve': curve,
+        'curve_data': curve_data.get(model),
         'dimension': dimension,
         'coupling': COUPLING,
         'sensors': SENSOR_PRICES,
