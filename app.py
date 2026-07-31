@@ -78,6 +78,29 @@ def find_curve(model):
                 return v
     return None
 
+def find_curve_data(model):
+    """模糊匹配curve_data，产品型号可能不带-4P/-2P后缀"""
+    if model in curve_data:
+        return curve_data[model]
+    # 去掉-数字P后缀再匹配
+    import re
+    base = re.sub(r'-\d+P$', '', model)
+    for k, v in curve_data.items():
+        if re.sub(r'-\d+P$', '', k) == base:
+            return v
+    # 去掉QG后缀
+    no_qg = base.upper().replace('QG', '')
+    for k, v in curve_data.items():
+        if re.sub(r'-\d+P$', '', k).upper().replace('QG', '') == no_qg:
+            return v
+    # 系列映射
+    for src, dst in SERIES_CURVE_MAP.items():
+        mapped = base.upper().replace(src, dst).replace('QG', '')
+        for k, v in curve_data.items():
+            if re.sub(r'-\d+P$', '', k).upper().replace('QG', '') == mapped:
+                return v
+    return None
+
 def find_dimension(model):
     """用 dim_mapping.json 匹配尺寸图，WQN/WQB/WQAF 共用 WQA 尺寸图"""
     clean = model.strip()
@@ -446,6 +469,7 @@ def api_product_detail(model):
     speed = SPEED_DATA.get(model, SPEED_DATA.get('SPEED_DATA', {}).get(model, 2950))
     weight = PUMP_WEIGHT.get(model, PUMP_WEIGHT.get('PUMP_WEIGHT', {}).get(model))
     curve = find_curve(model)
+    curve_data_result = find_curve_data(model)
     dimension = find_dimension(model)
     
     return jsonify({
@@ -454,7 +478,7 @@ def api_product_detail(model):
         'speed': speed,
         'weight': weight,
         'curve': curve,
-        'curve_data': curve_data.get(model),
+        'curve_data': curve_data_result,
         'dimension': dimension,
         'coupling': COUPLING,
         'sensors': SENSOR_PRICES,
