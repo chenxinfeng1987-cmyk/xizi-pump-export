@@ -78,26 +78,32 @@ def find_curve(model):
                 return v
     return None
 
+def _strip_curve_key(k):
+    """去掉key中的中文后缀（如'性能曲线图'）和-数字P后缀"""
+    import re
+    k = re.sub(r'[\u4e00-\u9fff]+$', '', k).strip()
+    k = re.sub(r'-\d+P-?$', '', k).strip()
+    return k
+
 def find_curve_data(model):
     """模糊匹配curve_data，产品型号可能不带-4P/-2P后缀"""
     if model in curve_data:
         return curve_data[model]
-    # 去掉-数字P后缀（可能带尾部横杠）再匹配
     import re
     base = re.sub(r'-\d+P-?$', '', model)
-    for k, v in curve_data.items():
-        if re.sub(r'-\d+P-?$', '', k) == base:
-            return v
-    # 去掉QG后缀
     no_qg = base.upper().replace('QG', '')
     for k, v in curve_data.items():
-        if re.sub(r'-\d+P-?$', '', k).upper().replace('QG', '') == no_qg:
+        clean_k = _strip_curve_key(k)
+        if clean_k == base:
             return v
-    # 系列映射
+    for k, v in curve_data.items():
+        clean_k = _strip_curve_key(k).upper().replace('QG', '')
+        if clean_k == no_qg:
+            return v
     for src, dst in SERIES_CURVE_MAP.items():
         mapped = base.upper().replace(src, dst).replace('QG', '')
         for k, v in curve_data.items():
-            if re.sub(r'-\d+P-?$', '', k).upper().replace('QG', '') == mapped:
+            if _strip_curve_key(k).upper().replace('QG', '') == mapped:
                 return v
     return None
 
