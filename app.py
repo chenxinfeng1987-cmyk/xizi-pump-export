@@ -60,17 +60,26 @@ SERIES_CURVE_MAP = {
     'WQF': 'WQF',
 }
 
+def _strip_curve_key(k):
+    """去掉key中的中文后缀（如'性能曲线图'、'新模'）和-数字P后缀"""
+    k = re.sub(r'-新模$', '', k).strip()
+    k = re.sub(r'[\u4e00-\u9fff]+$', '', k).strip()
+    k = re.sub(r'-\d+P-?$', '', k).strip()
+    return k
+
 # 预计算BEP（最高效率点）：从curve_data中提取η峰值对应的Q和H
 BEP_DATA = {}
 for _model, _cd in curve_data.items():
     _q = _cd.get('q', [])
     _eff = _cd.get('eff')
     _h = _cd.get('h')
-    if _q and _eff and _h and len(_q) == len(_eff) == len(_h):
+    if _q and _eff and _h:
+        _min_len = min(len(_q), len(_eff), len(_h))
+        if _min_len < 3:
+            continue
+        _q, _eff, _h = _q[:_min_len], _eff[:_min_len], _h[:_min_len]
         _peak_i = _eff.index(max(_eff))
-        _clean = re.sub(r'[\u4e00-\u9fff]+$', '', _model).strip()
-        _clean = re.sub(r'-\d+P-?$', '', _clean).strip()
-        _key = _clean.upper().replace('QG', '')
+        _key = _strip_curve_key(_model).upper().replace('QG', '')
         _bep = {
             'bep_q': round(_q[_peak_i], 1),
             'bep_h': round(_h[_peak_i], 1),
@@ -100,13 +109,6 @@ def find_curve(model):
             if k.upper().replace('QG', '') == mapped:
                 return v
     return None
-
-def _strip_curve_key(k):
-    """去掉key中的中文后缀（如'性能曲线图'）和-数字P后缀"""
-    import re
-    k = re.sub(r'[\u4e00-\u9fff]+$', '', k).strip()
-    k = re.sub(r'-\d+P-?$', '', k).strip()
-    return k
 
 def find_curve_data(model):
     """模糊匹配curve_data，产品型号可能不带-4P/-2P后缀"""
