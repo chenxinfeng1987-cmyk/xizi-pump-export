@@ -68,14 +68,20 @@ for _model, _cd in curve_data.items():
     _h = _cd.get('h')
     if _q and _eff and _h and len(_q) == len(_eff) == len(_h):
         _peak_i = _eff.index(max(_eff))
-        # 去掉中文后缀匹配产品型号
         _clean = re.sub(r'[\u4e00-\u9fff]+$', '', _model).strip()
         _clean = re.sub(r'-\d+P-?$', '', _clean).strip()
-        BEP_DATA[_clean.upper().replace('QG', '')] = {
+        _key = _clean.upper().replace('QG', '')
+        _bep = {
             'bep_q': round(_q[_peak_i], 1),
             'bep_h': round(_h[_peak_i], 1),
             'bep_eff': round(_eff[_peak_i], 1),
         }
+        BEP_DATA[_key] = _bep
+        # 系列映射：WQA→WQN/WQB/WQAF 等，让同口径不同系列也能匹配BEP
+        for _src, _dst in SERIES_CURVE_MAP.items():
+            _mapped = _key.replace(_dst, _src)
+            if _mapped != _key and _mapped not in BEP_DATA:
+                BEP_DATA[_mapped] = _bep
 
 def find_curve(model):
     """用 curve_mapping.json 匹配曲线，WQN/WQB/WQAF 共用 WQA 曲线"""
