@@ -500,7 +500,12 @@ def api_products():
     
     # 排序
     if use_bep:
-        results.sort(key=lambda p: (p.get('_match_score', 999), p.get('model', '')))
+        # 没有BEP数据的排到最后，有BEP的按match_score升序（越小越好）
+        def bep_sort(p):
+            score = p.get('_match_score', 999)
+            has_bep = p.get('_bep_q', 0) > 0
+            return (0 if has_bep else 1, score, p.get('model', ''))
+        results.sort(key=bep_sort)
     else:
         def sort_key(p):
             m = p.get('model', '')
