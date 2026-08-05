@@ -29,6 +29,10 @@
         .card .specs span { display: inline-block; margin-right: 15px; }
         .card .price { font-size: 1.2em; color: #d32f2f; font-weight: bold; }
         .card .btn { width: 100%; margin-top: 10px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; font-weight: 600; background: #e0e0e0; color: #555; margin-left: 6px; vertical-align: middle; }
+        .badge.best { background: #ff9800; color: white; }
+        .badge.good { background: #4caf50; color: white; }
+        .card .bep { font-size: 0.85em; color: #1a237e; background: #e8eaf6; padding: 6px 10px; border-radius: 6px; margin-bottom: 10px; }
         .detail-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; }
         .detail-content { background: white; max-width: 900px; margin: 40px auto; border-radius: 12px; padding: 30px; position: relative; }
         .detail-close { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; }
@@ -172,9 +176,23 @@
             const start = (page - 1) * PAGE_SIZE;
             const pageItems = products.slice(start, start + PAGE_SIZE);
             let html = '<div class="results">';
+            let rank = start;
             for (const p of pageItems) {
-                html += `<div class="card"><h3>${p.model}</h3>
+                rank++;
+                let badge = '';
+                if (p.match_score !== undefined && p.match_score !== null) {
+                    const score = p.match_score;
+                    if (score < 0.15) badge = `<span class="badge best">★ Best Match #${rank}</span>`;
+                    else if (score < 0.35) badge = `<span class="badge good">▲ Good #${rank}</span>`;
+                    else badge = `<span class="badge">#${rank}</span>`;
+                }
+                let bepHtml = '';
+                if (p.bep_q) {
+                    bepHtml = `<div class="bep">BEP: Q=${p.bep_q} m³/h, H=${p.bep_h} m, η=${p.bep_eff}%</div>`;
+                }
+                html += `<div class="card"><h3>${p.model} ${badge}</h3>
                     <div class="specs"><span>DN: ${p.dia || '-'}</span><span>Flow: ${p.flow} m³/h</span><span>Head: ${p.head} m</span><span>Power: ${p.power} kW</span></div>
+                    ${bepHtml}
                     ${p.has_price ? '<div class="price">FOB Available</div>' : '<div class="price" style="color:#888">Contact</div>'}
                     <button class="btn" onclick="openDetail('${p.model}')">Configure & Quote</button></div>`;
             }

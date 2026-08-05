@@ -60,6 +60,23 @@ SERIES_CURVE_MAP = {
     'WQF': 'WQF',
 }
 
+# 预计算BEP（最高效率点）：从curve_data中提取η峰值对应的Q和H
+BEP_DATA = {}
+for _model, _cd in curve_data.items():
+    _q = _cd.get('q', [])
+    _eff = _cd.get('eff')
+    _h = _cd.get('h')
+    if _q and _eff and _h and len(_q) == len(_eff) == len(_h):
+        _peak_i = _eff.index(max(_eff))
+        # 去掉中文后缀匹配产品型号
+        _clean = re.sub(r'[\u4e00-\u9fff]+$', '', _model).strip()
+        _clean = re.sub(r'-\d+P-?$', '', _clean).strip()
+        BEP_DATA[_clean.upper().replace('QG', '')] = {
+            'bep_q': round(_q[_peak_i], 1),
+            'bep_h': round(_h[_peak_i], 1),
+            'bep_eff': round(_eff[_peak_i], 1),
+        }
+
 def find_curve(model):
     """用 curve_mapping.json 匹配曲线，WQN/WQB/WQAF 共用 WQA 曲线"""
     # 先精确匹配
@@ -418,26 +435,79 @@ def api_products():
         results = [p for p in results if q_lower in p.get('model', '').lower()
                    or q_lower in str(p.get('flow', '')).lower()
                    or q_lower in str(p.get('head', '')).lower()]
+    
+    use_bep = False
+    flow_val = None
+    head_val = None
     if flow:
         try:
             flow_val = float(flow)
-            results = [p for p in results if abs(float(p.get('flow', 0) or 0) - flow_val) < 2]
         except:
             pass
     if head:
         try:
             head_val = float(head)
-            results = [p for p in results if abs(float(p.get('head', 0) or 0) - head_val) < 10]
         except:
             pass
     
+    if flow_val is not None or head_val is not None:
+        use_bep = True
+        # 用BEP匹配：为每个产品附加BEP信息和匹配分数
+        for p in results:
+            model = p.get('model', '')
+            clean = model.upper().replace('QG', '')
+            bep = BEP_DATA.get(clean, {})
+            p['_bep_q'] = bep.get('bep_q', 0)
+            p['_bep_h'] = bep.get('bep_h', 0)
+            p['_bep_eff'] = bep.get('bep_eff', 0)
+            
+            # 计算匹配分数（越小越好）
+            score = 0
+            rated_flow = float(p.get('flow', 0) or 1)
+            rated_head = float(p.get('head', 0) or 1)
+            if flow_val is not None and p['_bep_q'] > 0:
+                diff_q = abs(p['_bep_q'] - flow_val) / max(rated_flow, 1)
+                score += diff_q
+            if head_val is not None and p['_bep_h'] > 0:
+                diff_h = abs(p['_bep_h'] - head_val) / max(rated_head, 1)
+                score += diff_h
+            p['_match_score'] = score
+        
+        # 过滤：BEP在合理范围内的才保留（±60%额定值）
+        def in_range(p):
+            rated_flow = float(p.get('flow', 0) or 1)
+            rated_head = float(p.get('head', 0) or 1)
+            ok = True
+            if flow_val is not None and p['_bep_q'] > 0:
+                ok = ok and abs(p['_bep_q'] - flow_val) < rated_flow * 0.6 + 3
+            if head_val is not None and p['_bep_h'] > 0:
+                ok = ok and abs(p['_bep_h'] - head_val) < rated_head * 0.6 + 3
+            return ok
+        results = [p for p in results if in_range(p)]
+    else:
+        if flow:
+            try:
+                flow_val = float(flow)
+                results = [p for p in results if abs(float(p.get('flow', 0) or 0) - flow_val) < 2]
+            except:
+                pass
+        if head:
+            try:
+                head_val = float(head)
+                results = [p for p in results if abs(float(p.get('head', 0) or 0) - head_val) < 10]
+            except:
+                pass
+    
     # 排序
-    def sort_key(p):
-        m = p.get('model', '')
-        flow = float(p.get('flow', 0) or 0)
-        head = float(p.get('head', 0) or 0)
-        return (m, flow, head)
-    results.sort(key=sort_key)
+    if use_bep:
+        results.sort(key=lambda p: (p.get('_match_score', 999), p.get('model', '')))
+    else:
+        def sort_key(p):
+            m = p.get('model', '')
+            f = float(p.get('flow', 0) or 0)
+            h = float(p.get('head', 0) or 0)
+            return (m, f, h)
+        results.sort(key=sort_key)
     
     # 附加价格和曲线
     for p in results:
@@ -452,6 +522,18 @@ def api_products():
         curve = find_curve(model)
         if curve:
             p['curve_file'] = curve
+        
+        # 附加BEP信息
+        if use_bep:
+            p['bep_q'] = p.pop('_bep_q', 0)
+            p['bep_h'] = p.pop('_bep_h', 0)
+            p['bep_eff'] = p.pop('_bep_eff', 0)
+            p['match_score'] = round(p.pop('_match_score', 999), 3)
+        else:
+            p.pop('_bep_q', None)
+            p.pop('_bep_h', None)
+            p.pop('_bep_eff', None)
+            p.pop('_match_score', None)
     
     return jsonify({
         'products': results,
