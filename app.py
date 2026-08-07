@@ -426,23 +426,27 @@ def api_products():
     q = request.args.get('q', '').strip()
     flow = request.args.get('flow', '').strip()
     head = request.args.get('head', '').strip()
+    model_query = request.args.get('model', '').strip().upper()
     
     results = DATA
-    if series:
-        if series.upper() == 'WQA-QG':
-            results = [p for p in results if p.get('series', '').upper() == 'WQA' and p.get('model', '').upper().endswith('QG')]
-        elif series.upper() == 'WQA':
-            results = [p for p in results if p.get('series', '').upper() == 'WQA' and not p.get('model', '').upper().endswith('QG')]
-        else:
-            results = [p for p in results if p.get('series', '').upper() == series.upper() or p.get('model', '').upper().startswith(series.upper())]
-    if dn:
-        dn_val = dn.strip()
-        results = [p for p in results if str(p.get('dia', '') or '').strip() == dn_val]
-    if q:
-        q_lower = q.lower()
-        results = [p for p in results if q_lower in p.get('model', '').lower()
-                   or q_lower in str(p.get('flow', '')).lower()
-                   or q_lower in str(p.get('head', '')).lower()]
+    if model_query:
+        results = [p for p in results if model_query in p.get('model', '').upper()]
+    else:
+        if series:
+            if series.upper() == 'WQA-QG':
+                results = [p for p in results if p.get('series', '').upper() == 'WQA' and p.get('model', '').upper().endswith('QG')]
+            elif series.upper() == 'WQA':
+                results = [p for p in results if p.get('series', '').upper() == 'WQA' and not p.get('model', '').upper().endswith('QG')]
+            else:
+                results = [p for p in results if p.get('series', '').upper() == series.upper() or p.get('model', '').upper().startswith(series.upper())]
+        if dn:
+            dn_val = dn.strip()
+            results = [p for p in results if str(p.get('dia', '') or '').strip() == dn_val]
+        if q:
+            q_lower = q.lower()
+            results = [p for p in results if q_lower in p.get('model', '').lower()
+                       or q_lower in str(p.get('flow', '')).lower()
+                       or q_lower in str(p.get('head', '')).lower()]
     
     use_bep = False
     flow_val = None

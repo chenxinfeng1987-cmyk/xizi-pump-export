@@ -96,6 +96,10 @@
             </div>
             <div class="series-right">
                 <div class="search-group">
+                    <label>Model Name</label>
+                    <input type="text" id="txtModel" placeholder="e.g. 100WQA160-40-30">
+                </div>
+                <div class="search-group">
                     <label>Discharge (DN)</label>
                     <select id="selDN" onchange="loadProducts()">
                         <option value="">All DN</option>
@@ -114,13 +118,15 @@
                         <option value="600">DN600</option>
                     </select>
                 </div>
-                <div class="search-group">
-                    <label>Flow (m³/h)</label>
-                    <input type="number" id="txtFlow" placeholder="e.g. 100">
-                </div>
-                <div class="search-group">
-                    <label>Head (m)</label>
-                    <input type="number" id="txtHead" placeholder="e.g. 30">
+                <div class="row2">
+                    <div class="search-group">
+                        <label>Flow (m³/h)</label>
+                        <input type="number" id="txtFlow" placeholder="e.g. 100">
+                    </div>
+                    <div class="search-group">
+                        <label>Head (m)</label>
+                        <input type="number" id="txtHead" placeholder="e.g. 30">
+                    </div>
                 </div>
                 <div class="search-group" style="flex: 0;">
                     <label>&nbsp;</label>
@@ -152,11 +158,13 @@
 
         async function loadProducts() {
             const dn = document.getElementById('selDN').value;
+            const model = document.getElementById('txtModel').value.trim();
             const params = new URLSearchParams({
                 series: currentSeries,
                 q: dn ? dn : document.getElementById('txtFlow').value ? '' : '',
                 flow: document.getElementById('txtFlow').value,
-                head: document.getElementById('txtHead').value
+                head: document.getElementById('txtHead').value,
+                model: model
             });
             if (dn) params.set('dn', dn);
             const res = await fetch('/api/products?' + params);
