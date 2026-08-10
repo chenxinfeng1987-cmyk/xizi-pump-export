@@ -69,6 +69,26 @@
         .series-card .series-count { font-size: 0.75em; color: #888; }
         .series-card.all-card { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 170px; }
         .series-card.all-card .all-icon { font-size: 2em; color: #1a237e; }
+        @media (max-width: 768px) {
+            .hero { padding: 30px 15px; }
+            .hero h1 { font-size: 1.6em; }
+            .hero p { font-size: 0.95em; }
+            .container { padding: 10px; }
+            .search-box { flex-direction: column; padding: 15px; gap: 15px; }
+            .series-left { width: 100%; }
+            .series-selector { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .series-card { width: auto; min-height: 120px; }
+            .series-card img { width: 80px; height: 80px; }
+            .series-right { width: 100%; min-width: 0; }
+            .row2 { flex-direction: column; }
+            .results { grid-template-columns: 1fr; }
+            .detail-content { margin: 10px; padding: 15px; max-width: 100%; }
+            .config-grid { grid-template-columns: 1fr; }
+            .chart-frame { height: 250px; }
+        }
+        @media (max-width: 480px) {
+            .series-selector { grid-template-columns: repeat(2, 1fr); }
+        }
     </style>
 </head>
 <body>
@@ -390,8 +410,7 @@
                 setTimeout(() => drawPerfCurve(data.curve_data), 100);
             } else if (data.curve) {
                 html += `<h3 style="margin-top:20px">Performance Curve</h3>
-                    <div style="margin-top:10px;margin-bottom:5px"><a href="/curves/${data.curve}" target="_blank" class="btn btn-secondary" style="text-decoration:none;display:inline-block">View Performance Curve</a></div>
-                    <iframe src="/curves/${data.curve}" class="chart-frame"></iframe>`;
+                    <div style="margin-top:10px;margin-bottom:5px"><a href="/curves/${data.curve}" target="_blank" class="btn btn-secondary" style="text-decoration:none;display:inline-block">View PDF</a></div>`;
             }
 
             if (data.dimension) {
