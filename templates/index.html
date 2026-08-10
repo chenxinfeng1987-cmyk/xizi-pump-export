@@ -415,7 +415,7 @@
 
             if (data.dimension) {
                 html += `<h3 style="margin-top:20px">Dimension Drawing</h3>
-                    <iframe src="/dimensions/${data.dimension}" class="chart-frame" style="height:500px"></iframe>`;
+                    <div style="margin-top:10px;margin-bottom:5px"><a href="/dimensions/${data.dimension}" target="_blank" class="btn btn-secondary" style="text-decoration:none;display:inline-block">View Dimension PDF</a></div>`;
             }
 
             document.getElementById('detailBody').innerHTML = html;

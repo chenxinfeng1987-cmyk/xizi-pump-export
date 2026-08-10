@@ -620,11 +620,15 @@ def api_calc():
 
 @app.route('/curves/<path:filename>')
 def serve_curve(filename):
-    return send_from_directory(os.path.join(BASE_DIR, 'data', 'curves'), filename)
+    resp = send_from_directory(os.path.join(BASE_DIR, 'data', 'curves'), filename)
+    resp.headers['Content-Disposition'] = 'inline'
+    return resp
 
 @app.route('/dimensions/<path:filename>')
 def serve_dimension(filename):
-    return send_from_directory(os.path.join(BASE_DIR, 'static', 'dimensions'), filename)
+    resp = send_from_directory(os.path.join(BASE_DIR, 'static', 'dimensions'), filename)
+    resp.headers['Content-Disposition'] = 'inline'
+    return resp
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5006, debug=True)
