@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>XIZI PUMPS - Professional Pump Selection</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; }
@@ -415,7 +417,10 @@
 
             if (data.dimension) {
                 html += `<h3 style="margin-top:20px">Dimension Drawing</h3>
-                    <div style="margin-top:10px;margin-bottom:5px"><a href="/dimensions/${data.dimension}" target="_blank" class="btn btn-secondary" style="text-decoration:none;display:inline-block">View Dimension PDF</a></div>`;
+                    <div style="margin-top:10px;background:#fff;border:1px solid #ddd;border-radius:6px;padding:10px;text-align:center">
+                        <canvas id="dimCanvas" style="max-width:100%;height:auto"></canvas>
+                    </div>`;
+                setTimeout(() => renderDimPdf('/dimensions/${data.dimension}'), 100);
             }
 
             document.getElementById('detailBody').innerHTML = html;
@@ -628,6 +633,23 @@
         }
 
         function closeDetail() { document.getElementById('detailModal').style.display = 'none'; }
+
+        async function renderDimPdf(url) {
+            const canvas = document.getElementById('dimCanvas');
+            if (!canvas) return;
+            try {
+                const pdf = await pdfjsLib.getDocument(url).promise;
+                const page = await pdf.getPage(1);
+                const scale = 1.5;
+                const viewport = page.getViewport({scale});
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                const ctx = canvas.getContext('2d');
+                await page.render({canvasContext: ctx, viewport}).promise;
+            } catch(e) {
+                canvas.parentElement.innerHTML = '<a href="'+url+'" target="_blank" class="btn btn-secondary" style="text-decoration:none">View PDF</a>';
+            }
+        }
 
         function toggleSection(id, show) {
             const el = document.getElementById(id);
