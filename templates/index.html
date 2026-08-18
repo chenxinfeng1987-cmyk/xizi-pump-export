@@ -416,13 +416,11 @@
             }
 
             if (data.dimension) {
-                const dimUrl = '/dimensions/' + data.dimension;
-                const isSvg = data.dimension.toLowerCase().endsWith('.svg');
                 html += `<h3 style="margin-top:20px">Dimension Drawing</h3>
                     <div style="margin-top:10px;background:#fff;border:1px solid #ddd;border-radius:6px;padding:10px;text-align:center">
-                        ${isSvg ? `<img src="${dimUrl}" style="max-width:100%;height:auto" onerror="this.parentElement.innerHTML='<a href=\\'${dimUrl}\\' target=\\'_blank\\' class=\\'btn btn-secondary\\'>View Drawing</a>'">` : `<canvas id="dimCanvas" style="max-width:100%;height:auto"></canvas>`}
+                        <canvas id="dimCanvas" style="max-width:100%;height:auto"></canvas>
                     </div>`;
-                if (!isSvg) setTimeout(() => renderDimPdf(dimUrl), 100);
+                setTimeout(() => renderDimPdf('/dimensions/${data.dimension}'), 100);
             }
 
             document.getElementById('detailBody').innerHTML = html;
