@@ -418,9 +418,8 @@
             if (data.dimension) {
                 html += `<h3 style="margin-top:20px">Dimension Drawing</h3>
                     <div style="margin-top:10px;background:#fff;border:1px solid #ddd;border-radius:6px;padding:10px;text-align:center">
-                        <canvas id="dimCanvas" style="max-width:100%;height:auto"></canvas>
+                        <img src="/dimensions/${data.dimension}" style="max-width:100%;height:auto" onerror="this.parentElement.innerHTML='<a href=\\'/dimensions/${data.dimension}\\' target=\\'_blank\\' class=\\'btn btn-secondary\\'>View Drawing</a>'">
                     </div>`;
-                setTimeout(() => renderDimPdf('/dimensions/${data.dimension}'), 100);
             }
 
             document.getElementById('detailBody').innerHTML = html;
